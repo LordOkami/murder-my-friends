@@ -23,7 +23,7 @@
 
 const firebaseConfig = {
     apiKey: "AIzaSyDbtMcIULW0hh5L0qXJHTnJIRD8K-xlRAg",
-    authDomain: "murder-my-friends.firebaseapp.com",
+    authDomain: "murdermyfriends.netlify.app",
     databaseURL: "https://murder-my-friends-default-rtdb.europe-west1.firebasedatabase.app",
     projectId: "murder-my-friends",
     storageBucket: "murder-my-friends.firebasestorage.app",
