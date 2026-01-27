@@ -1826,6 +1826,178 @@ body {
     font-size: 0.85rem;
 }
 
+/* ============================================
+   Profile Summary (Welcome Screen)
+   ============================================ */
+.profile-summary {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+
+.profile-summary-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-red));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.profile-summary-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-summary-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.profile-summary-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.profile-edit-link {
+    color: var(--accent-purple);
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: var(--transition-fast);
+}
+
+.profile-edit-link:hover {
+    color: var(--accent-red);
+}
+
+/* ============================================
+   My Games List
+   ============================================ */
+.my-games-section {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+}
+
+.my-games-section h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+}
+
+.my-games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.game-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    border: 1px solid transparent;
+}
+
+.game-list-item:hover {
+    border-color: var(--accent-purple);
+    background: var(--bg-card-hover);
+}
+
+.game-list-item-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.game-list-item-code {
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.05rem;
+    color: var(--accent-gold);
+}
+
+.game-list-item-players {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.game-status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.game-status-badge.waiting {
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--accent-gold);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.game-status-badge.playing {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.game-status-badge.finished {
+    background: rgba(160, 160, 176, 0.1);
+    color: var(--text-muted);
+    border: 1px solid rgba(160, 160, 176, 0.2);
+}
+
+.empty-games {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* ============================================
+   Custom Profile Toggle
+   ============================================ */
+.custom-profile-toggle {
+    padding: 1rem 1.5rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.custom-profile-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.custom-profile-toggle input[type="checkbox"] {
+    accent-color: var(--accent-purple);
+    width: 18px;
+    height: 18px;
+}
+
 /* Player Count Badge */
 .player-count {
     background: var(--accent-purple);

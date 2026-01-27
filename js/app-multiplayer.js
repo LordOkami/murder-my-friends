@@ -3,10 +3,12 @@
  */
 
 // Global state
-let mpGame;
+let activeGame;
 let weapons = [];
 let pendingPhoto = null;
 let pendingGameCode = null;
+let userProfile = null;
+let editProfilePhoto = null;
 
 // Default weapons
 const DEFAULT_WEAPONS = [
@@ -23,37 +25,195 @@ async function init() {
     createParticles();
     setupEventListeners();
 
-    // Initialize multiplayer game
-    mpGame = new MultiplayerGame();
-    const firebaseReady = mpGame.init();
+    activeGame = new MultiplayerGame();
+    const firebaseReady = activeGame.init();
 
     if (!firebaseReady) return;
 
-    // Listen for auth state
     getAuth().onAuthStateChanged(async (user) => {
         if (user) {
-            // Logged in
             document.getElementById('headerActions').style.display = 'flex';
-            // Pre-fill profile name
-            const username = await getStoredUsername();
-            const profileInput = document.getElementById('profileNameInput');
-            if (profileInput && username) {
-                profileInput.value = username;
-            }
 
-            // Try reconnect to existing game
-            const reconnected = await mpGame.tryReconnect();
-            if (reconnected) {
-                mpGame.onGameUpdate = handleGameUpdate;
-            } else {
-                showScreen('welcomeScreen');
-            }
+            // Load profile
+            userProfile = await getUserProfile();
+
+            // Refresh home
+            refreshHomeScreen();
+            showScreen('welcomeScreen');
         } else {
-            // Not logged in
             document.getElementById('headerActions').style.display = 'none';
             showScreen('authScreen');
         }
     });
+}
+
+/**
+ * Refresh home screen: profile summary + games list
+ */
+async function refreshHomeScreen() {
+    if (userProfile) {
+        renderProfileSummary(userProfile);
+    }
+    await loadMyGames();
+}
+
+/**
+ * Load user's games from index
+ */
+async function loadMyGames() {
+    const uid = getCurrentUid();
+    if (!uid) return;
+
+    try {
+        const snap = await firebase.database().ref('users/' + uid + '/games').once('value');
+        const gamesIndex = snap.val();
+        if (!gamesIndex) {
+            renderMyGamesList([]);
+            return;
+        }
+
+        const codes = Object.keys(gamesIndex);
+        const games = [];
+
+        for (const code of codes) {
+            try {
+                const gameSnap = await firebase.database().ref('games/' + code).once('value');
+                if (gameSnap.exists()) {
+                    const data = gameSnap.val();
+                    games.push({
+                        code: code,
+                        status: data.status || 'waiting',
+                        playerCount: Object.keys(data.players || {}).length
+                    });
+                }
+            } catch (e) {
+                // Game may have been deleted
+            }
+        }
+
+        // Sort: playing first, then waiting, then finished
+        const order = { playing: 0, waiting: 1, finished: 2 };
+        games.sort((a, b) => (order[a.status] ?? 3) - (order[b.status] ?? 3));
+
+        renderMyGamesList(games);
+    } catch (e) {
+        console.error('Error loading games:', e);
+        renderMyGamesList([]);
+    }
+}
+
+/**
+ * Enter a game from the list
+ */
+async function enterGame(gameCode) {
+    try {
+        showToast('Conectando...', 'info');
+        const gameData = await activeGame.connectToGame(gameCode);
+        activeGame.onGameUpdate = handleGameUpdate;
+
+        switch (gameData.status) {
+            case 'waiting':
+                showScreen('lobbyScreen');
+                break;
+            case 'playing':
+                showScreen('gameScreen');
+                break;
+            case 'finished':
+                handleFinishedState(gameData);
+                break;
+            default:
+                showScreen('lobbyScreen');
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+/**
+ * Show edit profile screen
+ */
+function showEditProfile() {
+    editProfilePhoto = userProfile?.photo || null;
+
+    const nameInput = document.getElementById('editProfileNameInput');
+    const photoPreview = document.getElementById('editProfilePhotoPreview');
+
+    if (nameInput) nameInput.value = userProfile?.username || '';
+    if (photoPreview) {
+        if (editProfilePhoto) {
+            photoPreview.innerHTML = `<img src="${editProfilePhoto}" alt="Tu foto">`;
+            photoPreview.classList.add('has-photo');
+        } else {
+            photoPreview.innerHTML = '<span class="profile-photo-placeholder">📷</span>';
+            photoPreview.classList.remove('has-photo');
+        }
+    }
+
+    showScreen('editProfileScreen');
+}
+
+/**
+ * Save profile
+ */
+async function saveProfile() {
+    const name = document.getElementById('editProfileNameInput').value.trim();
+    if (!name) {
+        showToast('Introduce tu nombre', 'error');
+        return;
+    }
+
+    try {
+        await saveUserProfile(name, editProfilePhoto);
+        userProfile = { username: name, photo: editProfilePhoto };
+        renderProfileSummary(userProfile);
+        showToast('Perfil guardado', 'success');
+        backToHome();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+/**
+ * Toggle custom profile for a game
+ */
+function toggleCustomProfile() {
+    const checked = document.getElementById('customProfileToggle').checked;
+    const photoSection = document.getElementById('profilePhotoSection');
+    const nameSection = document.getElementById('profileNameSection');
+    const nameInput = document.getElementById('profileNameInput');
+
+    if (checked) {
+        // Enable custom fields
+        photoSection.style.display = '';
+        nameSection.style.display = '';
+        nameInput.value = '';
+        pendingPhoto = null;
+        document.getElementById('profilePhotoPreview').innerHTML = '<span class="profile-photo-placeholder">📷</span>';
+        document.getElementById('profilePhotoPreview').classList.remove('has-photo');
+    } else {
+        // Use profile defaults
+        photoSection.style.display = 'none';
+        nameSection.style.display = 'none';
+        if (userProfile) {
+            nameInput.value = userProfile.username || '';
+            pendingPhoto = userProfile.photo || null;
+        }
+    }
+}
+
+/**
+ * Back to home
+ */
+function backToHome() {
+    if (activeGame && activeGame.gameState) {
+        activeGame.unsubscribeFromGame();
+        activeGame.gameCode = null;
+        activeGame.playerId = null;
+        activeGame.isHost = false;
+        activeGame.gameState = null;
+    }
+    refreshHomeScreen();
+    showScreen('welcomeScreen');
 }
 
 /**
@@ -72,10 +232,11 @@ async function handleGoogleLogin() {
  * Handle logout
  */
 async function handleLogout() {
-    if (mpGame && mpGame.gameState) {
-        await mpGame.leaveGame();
-        mpGame.gameState = null;
+    if (activeGame && activeGame.gameState) {
+        await activeGame.leaveGame();
+        activeGame.gameState = null;
     }
+    userProfile = null;
     await logout();
     showToast('Sesión cerrada', 'info');
 }
@@ -84,35 +245,31 @@ async function handleLogout() {
  * Setup event listeners
  */
 function setupEventListeners() {
-    // Weapon input enter key
     document.getElementById('weaponNameInput')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addWeapon();
     });
 
-    // Game code input
     document.getElementById('gameCodeInput')?.addEventListener('input', (e) => {
         e.target.value = e.target.value.toUpperCase();
     });
 
-    // Profile name input enter key
     document.getElementById('profileNameInput')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') joinWithProfile();
     });
 
-    // Profile photo upload
     document.getElementById('profilePhotoInput')?.addEventListener('change', handleProfilePhoto);
 
-    // Mission card click
+    document.getElementById('editProfilePhotoInput')?.addEventListener('change', handleEditProfilePhoto);
+
     document.getElementById('missionCard')?.addEventListener('click', toggleMissionCard);
 
-    // Modal overlay click
     document.getElementById('modalOverlay')?.addEventListener('click', (e) => {
         if (e.target.id === 'modalOverlay') hideModal();
     });
 }
 
 /**
- * Handle profile photo upload
+ * Handle profile photo upload (game join)
  */
 function handleProfilePhoto(e) {
     const file = e.target.files[0];
@@ -128,6 +285,31 @@ function handleProfilePhoto(e) {
         resizeImage(event.target.result, 200, 200, (resized) => {
             pendingPhoto = resized;
             const preview = document.getElementById('profilePhotoPreview');
+            preview.innerHTML = `<img src="${resized}" alt="Tu foto">`;
+            preview.classList.add('has-photo');
+            showToast('Foto lista', 'success');
+        });
+    };
+    reader.readAsDataURL(file);
+}
+
+/**
+ * Handle edit profile photo upload
+ */
+function handleEditProfilePhoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        showToast('Selecciona una imagen', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        resizeImage(event.target.result, 200, 200, (resized) => {
+            editProfilePhoto = resized;
+            const preview = document.getElementById('editProfilePhotoPreview');
             preview.innerHTML = `<img src="${resized}" alt="Tu foto">`;
             preview.classList.add('has-photo');
             showToast('Foto lista', 'success');
@@ -222,18 +404,49 @@ async function createMultiplayerGame() {
 
     try {
         showToast('Creando partida...', 'info');
-        const gameCode = await mpGame.createGame(weapons);
+        const gameCode = await activeGame.createGame(weapons);
 
-        // Setup game update handler
-        mpGame.onGameUpdate = handleGameUpdate;
+        activeGame.onGameUpdate = handleGameUpdate;
 
-        // Show profile screen for host to join
         pendingGameCode = gameCode;
+        prepareProfileScreen();
         showScreen('profileScreen');
         showToast('Partida creada. Ahora crea tu perfil.', 'success');
 
     } catch (error) {
         showToast(error.message, 'error');
+    }
+}
+
+/**
+ * Prepare profile screen with defaults from user profile
+ */
+function prepareProfileScreen() {
+    const toggle = document.getElementById('customProfileToggle');
+    const photoSection = document.getElementById('profilePhotoSection');
+    const nameSection = document.getElementById('profileNameSection');
+    const nameInput = document.getElementById('profileNameInput');
+
+    // Default: use profile (toggle unchecked)
+    if (toggle) toggle.checked = false;
+
+    if (userProfile) {
+        nameInput.value = userProfile.username || '';
+        pendingPhoto = userProfile.photo || null;
+
+        if (pendingPhoto) {
+            const preview = document.getElementById('profilePhotoPreview');
+            preview.innerHTML = `<img src="${pendingPhoto}" alt="Tu foto">`;
+            preview.classList.add('has-photo');
+        }
+
+        // Hide custom fields by default
+        photoSection.style.display = 'none';
+        nameSection.style.display = 'none';
+    } else {
+        // No profile yet, show fields
+        photoSection.style.display = '';
+        nameSection.style.display = '';
     }
 }
 
@@ -255,11 +468,7 @@ function showJoinProfile() {
     pendingGameCode = code.toUpperCase();
     pendingPhoto = null;
 
-    // Reset profile form
-    document.getElementById('profileNameInput').value = '';
-    document.getElementById('profilePhotoPreview').innerHTML = '<span class="profile-photo-placeholder">📷</span>';
-    document.getElementById('profilePhotoPreview').classList.remove('has-photo');
-
+    prepareProfileScreen();
     showScreen('profileScreen');
 }
 
@@ -267,7 +476,21 @@ function showJoinProfile() {
  * Join game with profile
  */
 async function joinWithProfile() {
-    const name = document.getElementById('profileNameInput').value.trim();
+    const toggle = document.getElementById('customProfileToggle');
+    const isCustom = toggle && toggle.checked;
+
+    let name, photo;
+
+    if (isCustom) {
+        name = document.getElementById('profileNameInput').value.trim();
+        photo = pendingPhoto;
+    } else if (userProfile) {
+        name = userProfile.username;
+        photo = userProfile.photo;
+    } else {
+        name = document.getElementById('profileNameInput').value.trim();
+        photo = pendingPhoto;
+    }
 
     if (!name) {
         showToast('Introduce tu nombre', 'error');
@@ -277,16 +500,13 @@ async function joinWithProfile() {
     try {
         showToast('Uniéndose a la partida...', 'info');
 
-        if (mpGame.isHost) {
-            // Host joining their own game
-            await mpGame.hostJoinGame(name, pendingPhoto);
+        if (activeGame.isHost) {
+            await activeGame.hostJoinGame(name, photo);
         } else {
-            // Regular player joining
-            await mpGame.joinGame(pendingGameCode, name, pendingPhoto);
+            await activeGame.joinGame(pendingGameCode, name, photo);
         }
 
-        // Setup game update handler
-        mpGame.onGameUpdate = handleGameUpdate;
+        activeGame.onGameUpdate = handleGameUpdate;
 
         showScreen('lobbyScreen');
         showToast('¡Te has unido!', 'success');
@@ -302,14 +522,12 @@ async function joinWithProfile() {
 function handleGameUpdate(gameState) {
     if (!gameState) return;
 
-    // Update game code displays
     const codeDisplays = ['gameCodeDisplay', 'gameCodeDisplay2'];
     codeDisplays.forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = gameState.code;
     });
 
-    // Handle different game states
     switch (gameState.status) {
         case 'waiting':
             handleWaitingState(gameState);
@@ -327,25 +545,20 @@ function handleGameUpdate(gameState) {
  * Handle waiting state
  */
 function handleWaitingState(gameState) {
-    // Make sure we're on the lobby screen
     const currentScreen = document.querySelector('.screen.active');
     if (currentScreen && currentScreen.id !== 'lobbyScreen' && currentScreen.id !== 'profileScreen') {
         showScreen('lobbyScreen');
     }
 
-    // Render weapons
     renderWeaponsGrid(gameState.weapons, 'weaponsGrid');
-
-    // Render players
     renderPlayersGridLobby(gameState.players, 'playersGrid');
 
-    // Update host controls
     const hostControls = document.getElementById('hostControls');
     const waitingMessage = document.getElementById('waitingMessage');
     const startBtn = document.getElementById('startGameBtn');
     const playerCount = Object.keys(gameState.players || {}).length;
 
-    if (mpGame.isHost) {
+    if (activeGame.isHost) {
         hostControls.style.display = 'block';
         waitingMessage.style.display = 'none';
         startBtn.disabled = playerCount < 3;
@@ -368,7 +581,6 @@ function handleWaitingState(gameState) {
  * Handle playing state
  */
 function handlePlayingState(gameState) {
-    // Navigate to game screen if not already there
     const currentScreen = document.querySelector('.screen.active');
     const gameScreens = ['gameScreen', 'missionScreen', 'killScreen'];
 
@@ -376,7 +588,6 @@ function handlePlayingState(gameState) {
         showScreen('gameScreen');
     }
 
-    // Update UI
     renderWeaponsGrid(gameState.weapons, 'weaponsGrid2');
     renderPlayersGridGame(gameState.players, gameState.killedPlayers, 'playersGrid2');
 
@@ -402,7 +613,7 @@ function handleFinishedState(gameState) {
 async function startMultiplayerGame() {
     try {
         showToast('Iniciando partida...', 'info');
-        await mpGame.startGame();
+        await activeGame.startGame();
         showToast('¡La partida ha comenzado!', 'success');
     } catch (error) {
         showToast(error.message, 'error');
@@ -413,14 +624,13 @@ async function startMultiplayerGame() {
  * Show my mission
  */
 function showMyMission() {
-    // Check if player is dead
-    if (!mpGame.isAlive(mpGame.playerId)) {
+    if (!activeGame.isAlive(activeGame.playerId)) {
         showScreen('missionScreen');
         showDeadMessage();
         return;
     }
 
-    const mission = mpGame.getMyMission();
+    const mission = activeGame.getMyMission();
     if (!mission || !mission.target) {
         showToast('No se encontró tu misión', 'error');
         return;
@@ -434,9 +644,9 @@ function showMyMission() {
  * Show kill select screen
  */
 function showKillSelect() {
-    if (!mpGame.gameState) return;
+    if (!activeGame.gameState) return;
 
-    renderKillSelectGrid(mpGame.gameState.players, mpGame.gameState.killedPlayers);
+    renderKillSelectGrid(activeGame.gameState.players, activeGame.gameState.killedPlayers);
     showScreen('killScreen');
 }
 
@@ -444,7 +654,7 @@ function showKillSelect() {
  * Confirm kill
  */
 function confirmKill(victimId) {
-    const victim = mpGame.gameState.players[victimId];
+    const victim = activeGame.gameState.players[victimId];
 
     showModal(`
         <h3>💀 Confirmar Asesinato</h3>
@@ -463,8 +673,8 @@ async function executeKill(victimId) {
     hideModal();
 
     try {
-        const result = await mpGame.reportKill(victimId);
-        const victim = mpGame.gameState.players[victimId];
+        const result = await activeGame.reportKill(victimId);
+        const victim = activeGame.gameState.players[victimId];
         showToast(`${victim.name} ha sido eliminado`, 'success');
 
         if (!result.isGameOver) {
@@ -480,12 +690,11 @@ async function executeKill(victimId) {
  */
 async function leaveAndReset() {
     hideModal();
-    await mpGame.leaveGame();
+    await activeGame.leaveGame();
     weapons = [];
     pendingPhoto = null;
     pendingGameCode = null;
 
-    // Reset UI
     if (document.getElementById('weaponsList')) {
         document.getElementById('weaponsList').innerHTML = '';
     }
@@ -493,6 +702,7 @@ async function leaveAndReset() {
         document.getElementById('weaponCounter').textContent = '0';
     }
 
+    refreshHomeScreen();
     showScreen('welcomeScreen');
     showToast('Has salido de la partida', 'info');
 }
@@ -515,3 +725,9 @@ window.executeKill = executeKill;
 window.leaveAndReset = leaveAndReset;
 window.handleGoogleLogin = handleGoogleLogin;
 window.handleLogout = handleLogout;
+window.showEditProfile = showEditProfile;
+window.saveProfile = saveProfile;
+window.toggleCustomProfile = toggleCustomProfile;
+window.backToHome = backToHome;
+window.enterGame = enterGame;
+window.refreshHomeScreen = refreshHomeScreen;

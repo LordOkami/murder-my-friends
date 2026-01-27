@@ -30,6 +30,7 @@ async function loginWithGoogle() {
         if (!snap.exists()) {
             await firebase.database().ref('users/' + user.uid).set({
                 username: user.displayName || 'Jugador',
+                photo: null,
                 createdAt: firebase.database.ServerValue.TIMESTAMP
             });
         }
@@ -40,6 +41,24 @@ async function loginWithGoogle() {
         }
         throw error;
     }
+}
+
+async function getUserProfile() {
+    const uid = getCurrentUid();
+    if (!uid) return null;
+    const snap = await firebase.database().ref('users/' + uid).once('value');
+    if (!snap.exists()) return null;
+    const data = snap.val();
+    return { username: data.username || 'Jugador', photo: data.photo || null };
+}
+
+async function saveUserProfile(name, photo) {
+    const uid = getCurrentUid();
+    if (!uid) throw new Error('No hay sesión activa');
+    await firebase.database().ref('users/' + uid).update({
+        username: name,
+        photo: photo || null
+    });
 }
 
 function logout() {
@@ -71,3 +90,5 @@ window.getCurrentUid = getCurrentUid;
 window.getStoredUsername = getStoredUsername;
 window.hasGoogleLinked = hasGoogleLinked;
 window.getAuth = getAuth;
+window.getUserProfile = getUserProfile;
+window.saveUserProfile = saveUserProfile;

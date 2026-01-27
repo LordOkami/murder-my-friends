@@ -27,6 +27,7 @@
                 Murder My Friends
             </h1>
             <div class="header-actions" id="headerActions" style="display: none;">
+                <button class="btn btn-ghost btn-sm" onclick="showEditProfile()" title="Perfil">👤</button>
                 <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Salir</button>
             </div>
         </header>
@@ -49,19 +50,31 @@
 
             <!-- Screen: Welcome -->
             <section class="screen" id="welcomeScreen">
-                <div class="welcome-card">
-                    <div class="skull-animation">💀</div>
-                    <h2>Bienvenido al juego más mortal</h2>
-                    <p>Organiza una partida de asesinatos entre amigos. Cada jugador recibirá en secreto una víctima y un arma.</p>
-                    <div class="welcome-buttons">
-                        <button class="btn btn-primary btn-large" onclick="showScreen('createGameScreen')">
-                            <span class="btn-icon">⚔️</span>
-                            Crear Partida
-                        </button>
-                        <button class="btn btn-secondary" onclick="showScreen('joinScreen')">
-                            <span class="btn-icon">🎭</span>
-                            Unirse a Partida
-                        </button>
+                <!-- Profile Summary -->
+                <div class="profile-summary" id="profileSummary">
+                    <div class="profile-summary-avatar" id="profileSummaryAvatar">💀</div>
+                    <div class="profile-summary-info">
+                        <span class="profile-summary-name" id="profileSummaryName">Jugador</span>
+                        <a href="#" class="profile-edit-link" onclick="showEditProfile(); return false;">Editar perfil</a>
+                    </div>
+                </div>
+
+                <div class="welcome-buttons" style="margin-bottom: 1.5rem;">
+                    <button class="btn btn-primary btn-large" onclick="showScreen('createGameScreen')">
+                        <span class="btn-icon">⚔️</span>
+                        Crear Partida
+                    </button>
+                    <button class="btn btn-secondary" onclick="showScreen('joinScreen')">
+                        <span class="btn-icon">🎭</span>
+                        Unirse a Partida
+                    </button>
+                </div>
+
+                <!-- My Games List -->
+                <div class="my-games-section">
+                    <h3>🎮 Tus Partidas</h3>
+                    <div class="my-games-list" id="myGamesList">
+                        <div class="empty-games">No tienes partidas aún</div>
                     </div>
                 </div>
 
@@ -74,6 +87,40 @@
                         <li>Al eliminar a alguien, <strong>heredas su misión</strong></li>
                         <li>El último jugador en pie <strong>gana la partida</strong></li>
                     </ul>
+                </div>
+            </section>
+
+            <!-- Screen: Edit Profile -->
+            <section class="screen" id="editProfileScreen">
+                <div class="setup-container">
+                    <div class="setup-header">
+                        <h2>Tu Perfil</h2>
+                        <p>Configura tu identidad</p>
+                    </div>
+
+                    <div class="profile-photo-section">
+                        <div class="profile-photo-preview" id="editProfilePhotoPreview">
+                            <span class="profile-photo-placeholder">📷</span>
+                        </div>
+                        <label class="btn btn-secondary">
+                            <input type="file" id="editProfilePhotoInput" accept="image/*" hidden>
+                            <span>📸</span> Cambiar Foto
+                        </label>
+                    </div>
+
+                    <div class="setup-section">
+                        <div class="input-group">
+                            <input type="text" id="editProfileNameInput" placeholder="Tu nombre" maxlength="20">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-large" onclick="saveProfile()" style="width: 100%;">
+                        Guardar Perfil
+                    </button>
+
+                    <button class="btn btn-ghost" onclick="backToHome()" style="margin-top: 1rem; width: 100%;">
+                        ← Volver
+                    </button>
                 </div>
             </section>
 
@@ -137,7 +184,14 @@
                         <p>Crea tu identidad de asesino</p>
                     </div>
 
-                    <div class="profile-photo-section">
+                    <div class="custom-profile-toggle">
+                        <label>
+                            <input type="checkbox" id="customProfileToggle" onchange="toggleCustomProfile()">
+                            Usar nombre/foto diferente para esta partida
+                        </label>
+                    </div>
+
+                    <div class="profile-photo-section" id="profilePhotoSection">
                         <div class="profile-photo-preview" id="profilePhotoPreview">
                             <span class="profile-photo-placeholder">📷</span>
                         </div>
@@ -147,7 +201,7 @@
                         </label>
                     </div>
 
-                    <div class="setup-section">
+                    <div class="setup-section" id="profileNameSection">
                         <div class="input-group">
                             <input type="text" id="profileNameInput" placeholder="Tu nombre" maxlength="20">
                         </div>
@@ -322,6 +376,9 @@
                     <button class="btn btn-primary btn-large" onclick="leaveAndReset()">
                         <span class="btn-icon">🔄</span>
                         Nueva Partida
+                    </button>
+                    <button class="btn btn-secondary" onclick="backToHome()" style="margin-top: 0.75rem; width: 100%;">
+                        Volver al inicio
                     </button>
                 </div>
             </section>

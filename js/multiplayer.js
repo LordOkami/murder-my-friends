@@ -53,6 +53,34 @@ class MultiplayerGame {
     }
 
     /**
+     * Write user game index entry
+     */
+    async writeUserGameIndex(uid, gameCode, data) {
+        await this.db.ref('users/' + uid + '/games/' + gameCode).set(data);
+    }
+
+    /**
+     * Connect to an existing game (for re-entry from game list)
+     */
+    async connectToGame(gameCode) {
+        if (!this.db) throw new Error('Firebase no inicializado');
+
+        this.gameCode = gameCode;
+        this.gameRef = this.db.ref('games/' + gameCode);
+
+        const snapshot = await this.gameRef.once('value');
+        if (!snapshot.exists()) throw new Error('Partida no encontrada');
+
+        const gameData = snapshot.val();
+        this.playerId = this.getPlayerId();
+        this.isHost = gameData.hostId === this.playerId;
+        this.gameState = gameData;
+
+        this.subscribeToGame();
+        return gameData;
+    }
+
+    /**
      * Create a new game as host
      */
     async createGame(weapons) {
@@ -64,12 +92,10 @@ class MultiplayerGame {
         this.playerId = this.getPlayerId();
         this.isHost = true;
 
-        localStorage.setItem('mmf_gameCode', this.gameCode);
-
         const gameData = {
             code: this.gameCode,
             hostId: this.playerId,
-            status: 'waiting', // waiting, playing, finished
+            status: 'waiting',
             weapons: weapons,
             players: {},
             assignments: {},
@@ -80,6 +106,12 @@ class MultiplayerGame {
 
         this.gameRef = this.db.ref('games/' + this.gameCode);
         await this.gameRef.set(gameData);
+
+        await this.writeUserGameIndex(this.playerId, this.gameCode, {
+            status: 'waiting',
+            joinedAt: firebase.database.ServerValue.TIMESTAMP,
+            isHost: true
+        });
 
         this.subscribeToGame();
         return this.gameCode;
@@ -96,7 +128,6 @@ class MultiplayerGame {
         this.gameCode = gameCode.toUpperCase();
         this.gameRef = this.db.ref('games/' + this.gameCode);
 
-        // Check if game exists
         const snapshot = await this.gameRef.once('value');
         if (!snapshot.exists()) {
             throw new Error('Partida no encontrada');
@@ -104,7 +135,6 @@ class MultiplayerGame {
 
         const gameData = snapshot.val();
 
-        // Check game status
         if (gameData.status !== 'waiting') {
             throw new Error('La partida ya ha comenzado');
         }
@@ -112,10 +142,8 @@ class MultiplayerGame {
         this.playerId = this.getPlayerId();
 
         if (gameData.players && gameData.players[this.playerId]) {
-            // Rejoining existing game
             this.isHost = gameData.hostId === this.playerId;
         } else {
-            // New player
             this.isHost = false;
 
             await this.gameRef.child('players/' + this.playerId).set({
@@ -127,7 +155,11 @@ class MultiplayerGame {
             });
         }
 
-        localStorage.setItem('mmf_gameCode', this.gameCode);
+        await this.writeUserGameIndex(this.playerId, this.gameCode, {
+            status: 'waiting',
+            joinedAt: firebase.database.ServerValue.TIMESTAMP,
+            isHost: this.isHost
+        });
 
         this.subscribeToGame();
         return this.playerId;
@@ -159,8 +191,17 @@ class MultiplayerGame {
             this.unsubscribe();
         }
 
+        const uid = this.playerId;
+        const code = this.gameCode;
+
         this.unsubscribe = this.gameRef.on('value', (snapshot) => {
             this.gameState = snapshot.val();
+
+            // Sync status to user game index
+            if (this.gameState && uid && code && this.db) {
+                this.db.ref('users/' + uid + '/games/' + code + '/status').set(this.gameState.status);
+            }
+
             if (this.onGameUpdate) {
                 this.onGameUpdate(this.gameState);
             }
@@ -208,11 +249,9 @@ class MultiplayerGame {
             throw new Error('Se necesitan más armas que jugadores');
         }
 
-        // Shuffle players for random cyclic order
         const shuffledPlayers = this.shuffle(players);
         const shuffledWeapons = this.shuffle(weapons);
 
-        // Create cyclic assignments
         const assignments = {};
         for (let i = 0; i < shuffledPlayers.length; i++) {
             const killer = shuffledPlayers[i];
@@ -226,7 +265,6 @@ class MultiplayerGame {
             };
         }
 
-        // Update game state
         await this.gameRef.update({
             status: 'playing',
             assignments: assignments,
@@ -247,7 +285,6 @@ class MultiplayerGame {
             return null;
         }
 
-        // Follow the chain if target is dead
         let targetId = assignment.targetId;
         const killedPlayers = this.gameState.killedPlayers || [];
         const visited = new Set([this.playerId]);
@@ -292,7 +329,6 @@ class MultiplayerGame {
             timestamp: Date.now()
         });
 
-        // Check for winner
         const players = Object.keys(this.gameState.players || {});
         const alivePlayers = players.filter(id => !newKilledPlayers.includes(id));
 
@@ -353,50 +389,10 @@ class MultiplayerGame {
      */
     async leaveGame() {
         this.unsubscribeFromGame();
-        localStorage.removeItem('mmf_gameCode');
         this.gameCode = null;
         this.playerId = null;
         this.isHost = false;
         this.gameState = null;
-    }
-
-    /**
-     * Try to reconnect to previous game
-     */
-    async tryReconnect() {
-        const savedGameCode = localStorage.getItem('mmf_gameCode');
-        const currentUid = getAuth().currentUser?.uid;
-
-        if (!currentUid || !savedGameCode || !this.db) {
-            return false;
-        }
-
-        try {
-            this.gameRef = this.db.ref('games/' + savedGameCode);
-            const snapshot = await this.gameRef.once('value');
-
-            if (!snapshot.exists()) {
-                this.leaveGame();
-                return false;
-            }
-
-            const gameData = snapshot.val();
-
-            if (!gameData.players || !gameData.players[currentUid]) {
-                this.leaveGame();
-                return false;
-            }
-
-            this.gameCode = savedGameCode;
-            this.playerId = currentUid;
-            this.isHost = gameData.hostId === currentUid;
-            this.subscribeToGame();
-
-            return true;
-        } catch (error) {
-            console.error('Reconnect error:', error);
-            return false;
-        }
     }
 }
 

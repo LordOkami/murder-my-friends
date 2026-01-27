@@ -19,18 +19,61 @@ function showScreen(screenId) {
  * Go to home screen
  */
 function goToHome() {
-    if (mpGame && mpGame.gameState) {
-        showModal(`
-            <h3>¿Salir de la partida?</h3>
-            <p>Perderás tu progreso en esta partida.</p>
-            <div class="modal-buttons">
-                <button class="btn btn-ghost" onclick="hideModal()">Cancelar</button>
-                <button class="btn btn-danger" onclick="leaveAndReset()">Salir</button>
-            </div>
-        `);
-    } else {
-        showScreen('welcomeScreen');
+    if (activeGame && activeGame.gameState) {
+        activeGame.unsubscribeFromGame();
+        activeGame.gameCode = null;
+        activeGame.playerId = null;
+        activeGame.isHost = false;
+        activeGame.gameState = null;
     }
+    refreshHomeScreen();
+    showScreen('welcomeScreen');
+}
+
+/**
+ * Render profile summary on welcome screen
+ */
+function renderProfileSummary(profile) {
+    const nameEl = document.getElementById('profileSummaryName');
+    const avatarEl = document.getElementById('profileSummaryAvatar');
+    if (!nameEl || !avatarEl) return;
+
+    nameEl.textContent = profile.username || 'Jugador';
+    if (profile.photo) {
+        avatarEl.innerHTML = `<img src="${profile.photo}" alt="avatar">`;
+    } else {
+        avatarEl.textContent = getInitials(profile.username || 'J');
+    }
+}
+
+/**
+ * Render my games list
+ */
+function renderMyGamesList(games) {
+    const container = document.getElementById('myGamesList');
+    if (!container) return;
+
+    if (!games || games.length === 0) {
+        container.innerHTML = '<div class="empty-games">No tienes partidas aún</div>';
+        return;
+    }
+
+    container.innerHTML = games.map(g => {
+        const statusLabels = { waiting: 'Esperando', playing: 'En curso', finished: 'Terminada' };
+        const statusClass = g.status || 'waiting';
+        const label = statusLabels[statusClass] || statusClass;
+        const playerCount = g.playerCount != null ? g.playerCount : '?';
+
+        return `
+            <div class="game-list-item" onclick="enterGame('${escapeHtml(g.code)}')">
+                <div class="game-list-item-left">
+                    <span class="game-list-item-code">${escapeHtml(g.code)}</span>
+                    <span class="game-list-item-players">👥 ${playerCount}</span>
+                </div>
+                <span class="game-status-badge ${statusClass}">${label}</span>
+            </div>
+        `;
+    }).join('');
 }
 
 /**
@@ -352,7 +395,7 @@ function launchConfetti() {
  * Copy game code
  */
 function copyGameCode() {
-    const code = mpGame?.gameCode;
+    const code = activeGame?.gameCode;
     if (code) {
         navigator.clipboard.writeText(code).then(() => {
             showToast('Código copiado: ' + code, 'success');
@@ -383,3 +426,5 @@ window.toggleMissionCard = toggleMissionCard;
 window.showGameOverScreen = showGameOverScreen;
 window.launchConfetti = launchConfetti;
 window.copyGameCode = copyGameCode;
+window.renderProfileSummary = renderProfileSummary;
+window.renderMyGamesList = renderMyGamesList;
