@@ -23,12 +23,20 @@ function getGoogleProvider() {
 }
 
 function isMobile() {
-    return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+           ('ontouchstart' in window && navigator.maxTouchPoints > 0);
 }
 
 async function loginWithGoogle() {
+    if (isMobile()) {
+        // Mobile: always use redirect (popups are unreliable)
+        getAuth().signInWithRedirect(getGoogleProvider());
+        // Browser navigates away; onAuthStateChanged fires on return
+        return null;
+    }
+
+    // Desktop: use popup
     try {
-        // Try popup first (works on desktop and some mobile browsers)
         const result = await getAuth().signInWithPopup(getGoogleProvider());
         await ensureUserCreated(result.user);
         return result.user;
@@ -36,25 +44,7 @@ async function loginWithGoogle() {
         if (error.code === 'auth/popup-closed-by-user') {
             throw new Error('Inicio cancelado');
         }
-        // Popup blocked or failed on mobile — fall back to redirect
-        if (error.code === 'auth/popup-blocked' ||
-            error.code === 'auth/cancelled-popup-request' ||
-            error.code === 'auth/operation-not-supported-in-this-environment') {
-            await getAuth().signInWithRedirect(getGoogleProvider());
-            return null;
-        }
         throw error;
-    }
-}
-
-async function handleRedirectResult() {
-    try {
-        const result = await getAuth().getRedirectResult();
-        if (result && result.user) {
-            await ensureUserCreated(result.user);
-        }
-    } catch (error) {
-        console.error('Redirect login error:', error);
     }
 }
 
@@ -118,5 +108,4 @@ window.hasGoogleLinked = hasGoogleLinked;
 window.getAuth = getAuth;
 window.getUserProfile = getUserProfile;
 window.saveUserProfile = saveUserProfile;
-window.handleRedirectResult = handleRedirectResult;
 window.ensureUserCreated = ensureUserCreated;

@@ -224,8 +224,11 @@ function backToHome() {
  */
 async function handleGoogleLogin() {
     try {
-        await loginWithGoogle();
-        showToast('Bienvenido', 'success');
+        const user = await loginWithGoogle();
+        // On mobile redirect, user is null (page navigates away)
+        if (user) {
+            showToast('Bienvenido', 'success');
+        }
     } catch (error) {
         showToast(error.message, 'error');
     }
