@@ -235,12 +235,14 @@ function toggleAuthMode() {
     const toggleLink = document.getElementById('authToggleLink');
 
     if (isRegisterMode) {
-        nameInput.style.display = '';
+        nameInput.classList.remove('auth-hidden');
+        nameInput.required = true;
         submitBtn.textContent = 'Crear cuenta';
         toggleText.textContent = '¿Ya tienes cuenta?';
         toggleLink.textContent = 'Inicia sesión';
     } else {
-        nameInput.style.display = 'none';
+        nameInput.classList.add('auth-hidden');
+        nameInput.required = false;
         submitBtn.textContent = 'Entrar';
         toggleText.textContent = '¿No tienes cuenta?';
         toggleLink.textContent = 'Regístrate';
@@ -318,14 +320,6 @@ function setupEventListeners() {
 
     document.getElementById('profileNameInput')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') joinWithProfile();
-    });
-
-    document.getElementById('authPassword')?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleEmailLogin();
-    });
-
-    document.getElementById('authDisplayName')?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleEmailLogin();
     });
 
     document.getElementById('profilePhotoInput')?.addEventListener('change', handleProfilePhoto);
