@@ -225,12 +225,16 @@ function backToHome() {
 async function handleGoogleLogin() {
     try {
         const user = await loginWithGoogle();
-        // On mobile redirect, user is null (page navigates away)
         if (user) {
             showToast('Bienvenido', 'success');
         }
     } catch (error) {
-        showToast(error.message, 'error');
+        // Show full error details for debugging
+        const msg = error.code
+            ? error.code + ': ' + error.message
+            : error.message;
+        showToast(msg, 'error');
+        console.error('Login error full:', error);
     }
 }
 

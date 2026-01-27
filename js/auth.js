@@ -22,29 +22,34 @@ function getGoogleProvider() {
     return _googleProvider;
 }
 
-function isMobile() {
-    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-           ('ontouchstart' in window && navigator.maxTouchPoints > 0);
-}
-
 async function loginWithGoogle() {
-    if (isMobile()) {
-        // Mobile: always use redirect (popups are unreliable)
-        getAuth().signInWithRedirect(getGoogleProvider());
-        // Browser navigates away; onAuthStateChanged fires on return
-        return null;
-    }
-
-    // Desktop: use popup
     try {
         const result = await getAuth().signInWithPopup(getGoogleProvider());
         await ensureUserCreated(result.user);
         return result.user;
     } catch (error) {
+        console.error('Google login error:', error.code, error.message);
+
         if (error.code === 'auth/popup-closed-by-user') {
             throw new Error('Inicio cancelado');
         }
-        throw error;
+
+        // If popup fails, try redirect as last resort
+        if (error.code === 'auth/popup-blocked' ||
+            error.code === 'auth/cancelled-popup-request' ||
+            error.code === 'auth/operation-not-supported-in-this-environment' ||
+            error.code === 'auth/internal-error') {
+            try {
+                getAuth().signInWithRedirect(getGoogleProvider());
+                return null;
+            } catch (redirectError) {
+                console.error('Redirect fallback error:', redirectError);
+                throw redirectError;
+            }
+        }
+
+        // Show the actual error to help diagnose
+        throw new Error('Error de login: ' + (error.code || error.message));
     }
 }
 
