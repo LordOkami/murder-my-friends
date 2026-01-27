@@ -2,6 +2,7 @@
  * Murder My Friends - Authentication (PIN + Google)
  */
 
+// Firebase must be initialized in firebase-config.js before this file loads
 const auth = firebase.auth();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
 

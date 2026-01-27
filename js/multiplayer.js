@@ -23,10 +23,6 @@ class MultiplayerGame {
         }
 
         try {
-            // Initialize Firebase
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
             this.db = firebase.database();
             return true;
         } catch (error) {

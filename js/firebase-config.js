@@ -36,6 +36,11 @@ function isFirebaseConfigured() {
     return firebaseConfig.apiKey !== "TU_API_KEY";
 }
 
+// Inicializar Firebase inmediatamente si está configurado
+if (isFirebaseConfigured() && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
 // Exportar
 window.firebaseConfig = firebaseConfig;
 window.isFirebaseConfigured = isFirebaseConfigured;
