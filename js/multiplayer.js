@@ -35,7 +35,7 @@ class MultiplayerGame {
      * Get player ID from Firebase Auth
      */
     getPlayerId() {
-        const uid = firebase.auth().currentUser?.uid;
+        const uid = getAuth().currentUser?.uid;
         if (!uid) throw new Error('No hay sesión activa');
         return uid;
     }
@@ -365,7 +365,7 @@ class MultiplayerGame {
      */
     async tryReconnect() {
         const savedGameCode = localStorage.getItem('mmf_gameCode');
-        const currentUid = firebase.auth().currentUser?.uid;
+        const currentUid = getAuth().currentUser?.uid;
 
         if (!currentUid || !savedGameCode || !this.db) {
             return false;

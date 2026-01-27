@@ -30,7 +30,7 @@ async function init() {
     if (!firebaseReady) return;
 
     // Listen for auth state
-    firebase.auth().onAuthStateChanged(async (user) => {
+    getAuth().onAuthStateChanged(async (user) => {
         if (user) {
             // Logged in
             document.getElementById('headerActions').style.display = 'flex';

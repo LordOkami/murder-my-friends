@@ -1,61 +1,31 @@
 /**
- * Murder My Friends - Authentication (PIN + Google)
+ * Murder My Friends - Authentication (Google only)
  */
 
-// Firebase must be initialized in firebase-config.js before this file loads
-const auth = firebase.auth();
-const googleProvider = new firebase.auth.GoogleAuthProvider();
+// Lazy-init to avoid "no Firebase App" errors
+let _auth = null;
+let _googleProvider = null;
 
-function pinEmail(username) {
-    return username.toLowerCase().trim() + '@murdermyfriends.pin';
-}
-
-function pinPassword(pin) {
-    return pin + '00'; // min 6 chars for Firebase
-}
-
-async function registerWithPIN(username, pin) {
-    const email = pinEmail(username);
-    const password = pinPassword(pin);
-
-    try {
-        const cred = await auth.createUserWithEmailAndPassword(email, password);
-        await firebase.database().ref('users/' + cred.user.uid).set({
-            username: username.trim(),
-            createdAt: firebase.database.ServerValue.TIMESTAMP
-        });
-        return cred.user;
-    } catch (error) {
-        if (error.code === 'auth/email-already-in-use') {
-            throw new Error('Ese nombre ya está en uso');
+function getAuth() {
+    if (!_auth) {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
-        throw error;
+        _auth = firebase.auth();
+        _googleProvider = new firebase.auth.GoogleAuthProvider();
     }
+    return _auth;
 }
 
-async function loginWithPIN(username, pin) {
-    const email = pinEmail(username);
-    const password = pinPassword(pin);
-
-    try {
-        const cred = await auth.signInWithEmailAndPassword(email, password);
-        return cred.user;
-    } catch (error) {
-        if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-            throw new Error('PIN incorrecto');
-        }
-        if (error.code === 'auth/user-not-found') {
-            throw new Error('No existe ese usuario');
-        }
-        throw error;
-    }
+function getGoogleProvider() {
+    getAuth();
+    return _googleProvider;
 }
 
 async function loginWithGoogle() {
     try {
-        const result = await auth.signInWithPopup(googleProvider);
+        const result = await getAuth().signInWithPopup(getGoogleProvider());
         const user = result.user;
-        // Save username from Google display name if no record exists
         const snap = await firebase.database().ref('users/' + user.uid + '/username').once('value');
         if (!snap.exists()) {
             await firebase.database().ref('users/' + user.uid).set({
@@ -72,30 +42,13 @@ async function loginWithGoogle() {
     }
 }
 
-async function linkGoogle() {
-    const user = auth.currentUser;
-    if (!user) throw new Error('No hay sesión activa');
-
-    try {
-        await user.linkWithPopup(googleProvider);
-        showToast('Cuenta de Google vinculada', 'success');
-    } catch (error) {
-        if (error.code === 'auth/credential-already-in-use') {
-            throw new Error('Esa cuenta de Google ya está vinculada a otro usuario');
-        }
-        if (error.code === 'auth/popup-closed-by-user') {
-            throw new Error('Vinculación cancelada');
-        }
-        throw error;
-    }
-}
-
 function logout() {
-    return auth.signOut();
+    return getAuth().signOut();
 }
 
 function getCurrentUid() {
-    return auth.currentUser ? auth.currentUser.uid : null;
+    const user = getAuth().currentUser;
+    return user ? user.uid : null;
 }
 
 async function getStoredUsername() {
@@ -106,17 +59,15 @@ async function getStoredUsername() {
 }
 
 function hasGoogleLinked() {
-    const user = auth.currentUser;
+    const user = getAuth().currentUser;
     if (!user) return false;
     return user.providerData.some(p => p.providerId === 'google.com');
 }
 
 // Exports
-window.registerWithPIN = registerWithPIN;
-window.loginWithPIN = loginWithPIN;
 window.loginWithGoogle = loginWithGoogle;
-window.linkGoogle = linkGoogle;
 window.logout = logout;
 window.getCurrentUid = getCurrentUid;
 window.getStoredUsername = getStoredUsername;
 window.hasGoogleLinked = hasGoogleLinked;
+window.getAuth = getAuth;
