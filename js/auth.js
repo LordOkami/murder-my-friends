@@ -22,24 +22,48 @@ function getGoogleProvider() {
     return _googleProvider;
 }
 
+function isMobile() {
+    return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 async function loginWithGoogle() {
     try {
-        const result = await getAuth().signInWithPopup(getGoogleProvider());
-        const user = result.user;
-        const snap = await firebase.database().ref('users/' + user.uid + '/username').once('value');
-        if (!snap.exists()) {
-            await firebase.database().ref('users/' + user.uid).set({
-                username: user.displayName || 'Jugador',
-                photo: null,
-                createdAt: firebase.database.ServerValue.TIMESTAMP
-            });
+        if (isMobile()) {
+            await getAuth().signInWithRedirect(getGoogleProvider());
+            // Page will reload — onAuthStateChanged handles the rest
+            return null;
+        } else {
+            const result = await getAuth().signInWithPopup(getGoogleProvider());
+            await ensureUserCreated(result.user);
+            return result.user;
         }
-        return user;
     } catch (error) {
         if (error.code === 'auth/popup-closed-by-user') {
             throw new Error('Inicio cancelado');
         }
         throw error;
+    }
+}
+
+async function handleRedirectResult() {
+    try {
+        const result = await getAuth().getRedirectResult();
+        if (result && result.user) {
+            await ensureUserCreated(result.user);
+        }
+    } catch (error) {
+        console.error('Redirect login error:', error);
+    }
+}
+
+async function ensureUserCreated(user) {
+    const snap = await firebase.database().ref('users/' + user.uid + '/username').once('value');
+    if (!snap.exists()) {
+        await firebase.database().ref('users/' + user.uid).set({
+            username: user.displayName || 'Jugador',
+            photo: null,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
     }
 }
 
@@ -92,3 +116,4 @@ window.hasGoogleLinked = hasGoogleLinked;
 window.getAuth = getAuth;
 window.getUserProfile = getUserProfile;
 window.saveUserProfile = saveUserProfile;
+window.handleRedirectResult = handleRedirectResult;

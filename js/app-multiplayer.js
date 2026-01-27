@@ -30,6 +30,9 @@ async function init() {
 
     if (!firebaseReady) return;
 
+    // Handle redirect result from mobile Google login
+    await handleRedirectResult();
+
     getAuth().onAuthStateChanged(async (user) => {
         if (user) {
             document.getElementById('headerActions').style.display = 'flex';
