@@ -26,12 +26,49 @@
                 <span class="logo-icon">🗡️</span>
                 Murder My Friends
             </h1>
+            <div class="header-actions" id="headerActions" style="display: none;">
+                <button class="btn btn-ghost btn-sm" id="linkGoogleBtn" onclick="handleLinkGoogle()" style="display: none;">🔗 Vincular Google</button>
+                <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Salir</button>
+            </div>
         </header>
 
         <!-- Main content -->
         <main class="main-content" id="mainContent">
+            <!-- Screen: Auth -->
+            <section class="screen active" id="authScreen">
+                <div class="welcome-card">
+                    <div class="skull-animation">💀</div>
+                    <h2>Identifícate</h2>
+                    <p id="authSubtitle">Entra con tu cuenta o crea una nueva</p>
+
+                    <div class="auth-form">
+                        <div class="input-group">
+                            <input type="text" id="authUsername" placeholder="Nombre de usuario" maxlength="20" autocomplete="username">
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="authPin" placeholder="PIN (4 dígitos)" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password">
+                        </div>
+                        <button class="btn btn-primary btn-large" id="authSubmitBtn" onclick="handleAuthSubmit()" style="width:100%;">
+                            Entrar
+                        </button>
+                        <button class="btn btn-ghost" id="authToggleBtn" onclick="toggleAuthMode()" style="width:100%; margin-top:0.5rem;">
+                            ¿No tienes cuenta? Crear una
+                        </button>
+                    </div>
+
+                    <div class="auth-divider">
+                        <span>o</span>
+                    </div>
+
+                    <button class="btn btn-secondary btn-large" onclick="handleGoogleLogin()" style="width:100%;">
+                        <span class="btn-icon">G</span>
+                        Entrar con Google
+                    </button>
+                </div>
+            </section>
+
             <!-- Screen: Welcome -->
-            <section class="screen active" id="welcomeScreen">
+            <section class="screen" id="welcomeScreen">
                 <div class="welcome-card">
                     <div class="skull-animation">💀</div>
                     <h2>Bienvenido al juego más mortal</h2>
@@ -347,9 +384,11 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
     <!-- App Scripts -->
     <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/multiplayer.js"></script>
     <script src="js/ui-multiplayer.js"></script>
     <script src="js/app-multiplayer.js"></script>

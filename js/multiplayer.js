@@ -36,10 +36,12 @@ class MultiplayerGame {
     }
 
     /**
-     * Generate unique player ID
+     * Get player ID from Firebase Auth
      */
-    generatePlayerId() {
-        return 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    getPlayerId() {
+        const uid = firebase.auth().currentUser?.uid;
+        if (!uid) throw new Error('No hay sesión activa');
+        return uid;
     }
 
     /**
@@ -63,11 +65,9 @@ class MultiplayerGame {
         }
 
         this.gameCode = this.generateGameCode();
-        this.playerId = this.generatePlayerId();
+        this.playerId = this.getPlayerId();
         this.isHost = true;
 
-        // Save player ID locally
-        localStorage.setItem('mmf_playerId', this.playerId);
         localStorage.setItem('mmf_gameCode', this.gameCode);
 
         const gameData = {
@@ -113,20 +113,15 @@ class MultiplayerGame {
             throw new Error('La partida ya ha comenzado');
         }
 
-        // Check if rejoining
-        const savedPlayerId = localStorage.getItem('mmf_playerId');
-        const savedGameCode = localStorage.getItem('mmf_gameCode');
+        this.playerId = this.getPlayerId();
 
-        if (savedPlayerId && savedGameCode === this.gameCode && gameData.players && gameData.players[savedPlayerId]) {
+        if (gameData.players && gameData.players[this.playerId]) {
             // Rejoining existing game
-            this.playerId = savedPlayerId;
             this.isHost = gameData.hostId === this.playerId;
         } else {
             // New player
-            this.playerId = this.generatePlayerId();
             this.isHost = false;
 
-            // Add player to game
             await this.gameRef.child('players/' + this.playerId).set({
                 id: this.playerId,
                 name: playerName,
@@ -136,8 +131,6 @@ class MultiplayerGame {
             });
         }
 
-        // Save locally
-        localStorage.setItem('mmf_playerId', this.playerId);
         localStorage.setItem('mmf_gameCode', this.gameCode);
 
         this.subscribeToGame();
@@ -364,7 +357,6 @@ class MultiplayerGame {
      */
     async leaveGame() {
         this.unsubscribeFromGame();
-        localStorage.removeItem('mmf_playerId');
         localStorage.removeItem('mmf_gameCode');
         this.gameCode = null;
         this.playerId = null;
@@ -376,10 +368,10 @@ class MultiplayerGame {
      * Try to reconnect to previous game
      */
     async tryReconnect() {
-        const savedPlayerId = localStorage.getItem('mmf_playerId');
         const savedGameCode = localStorage.getItem('mmf_gameCode');
+        const currentUid = firebase.auth().currentUser?.uid;
 
-        if (!savedPlayerId || !savedGameCode || !this.db) {
+        if (!currentUid || !savedGameCode || !this.db) {
             return false;
         }
 
@@ -394,15 +386,14 @@ class MultiplayerGame {
 
             const gameData = snapshot.val();
 
-            // Check if player is in this game
-            if (!gameData.players || !gameData.players[savedPlayerId]) {
+            if (!gameData.players || !gameData.players[currentUid]) {
                 this.leaveGame();
                 return false;
             }
 
             this.gameCode = savedGameCode;
-            this.playerId = savedPlayerId;
-            this.isHost = gameData.hostId === savedPlayerId;
+            this.playerId = currentUid;
+            this.isHost = gameData.hostId === currentUid;
             this.subscribeToGame();
 
             return true;
