@@ -229,18 +229,18 @@ let isRegisterMode = false;
  */
 function toggleAuthMode() {
     isRegisterMode = !isRegisterMode;
-    const nameGroup = document.getElementById('authNameGroup');
+    const nameInput = document.getElementById('authDisplayName');
     const submitBtn = document.getElementById('authSubmitBtn');
     const toggleText = document.getElementById('authToggleText');
     const toggleLink = document.getElementById('authToggleLink');
 
     if (isRegisterMode) {
-        nameGroup.style.display = '';
+        nameInput.style.display = '';
         submitBtn.textContent = 'Crear cuenta';
         toggleText.textContent = '¿Ya tienes cuenta?';
         toggleLink.textContent = 'Inicia sesión';
     } else {
-        nameGroup.style.display = 'none';
+        nameInput.style.display = 'none';
         submitBtn.textContent = 'Entrar';
         toggleText.textContent = '¿No tienes cuenta?';
         toggleLink.textContent = 'Regístrate';

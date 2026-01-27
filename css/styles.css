@@ -1973,15 +1973,44 @@ body {
 }
 
 /* ============================================
-   Auth Form
+   Auth Screen
    ============================================ */
-.auth-form .input-group {
-    margin-bottom: 0.75rem;
+.auth-card {
+    text-align: center;
+    padding: 2rem 1.25rem;
+    background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    max-width: 400px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-.auth-form input[type="email"],
-.auth-form input[type="password"],
-.auth-form input[type="text"] {
+.auth-card h2 {
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    margin: 1.25rem 0 0.5rem;
+    background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.auth-subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+
+.auth-input {
     width: 100%;
     padding: 0.875rem 1rem;
     background: var(--bg-secondary);
@@ -1989,18 +2018,31 @@ body {
     border-radius: var(--radius-md);
     color: var(--text-primary);
     font-size: 1rem;
+    font-family: var(--font-body);
     transition: var(--transition-fast);
     box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
-.auth-form input:focus {
+.auth-input:focus {
     outline: none;
-    border-color: var(--accent-purple);
+    border-color: var(--accent-red);
+    box-shadow: 0 0 0 3px var(--accent-red-glow);
+}
+
+.auth-input::placeholder {
+    color: var(--text-muted);
+}
+
+.auth-submit {
+    width: 100%;
+    margin-top: 0.25rem;
 }
 
 .auth-toggle {
     text-align: center;
-    margin-top: 0.75rem;
+    margin: 0;
     font-size: 0.85rem;
     color: var(--text-muted);
 }
@@ -2034,6 +2076,49 @@ body {
 .auth-divider span {
     color: var(--text-muted);
     font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: var(--font-body);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-google:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--text-muted);
+}
+
+.btn-google:active {
+    transform: scale(0.98);
+}
+
+.google-icon {
+    flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+    .auth-card {
+        padding: 3rem 2.5rem;
+    }
+
+    .auth-card h2 {
+        font-size: 2rem;
+    }
 }
 
 /* ============================================
