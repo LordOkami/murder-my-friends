@@ -27,7 +27,6 @@
                 Murder My Friends
             </h1>
             <div class="header-actions" id="headerActions" style="display: none;">
-                <button class="btn btn-ghost btn-sm" id="linkGoogleBtn" onclick="handleLinkGoogle()" style="display: none;">🔗 Vincular Google</button>
                 <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Salir</button>
             </div>
         </header>
@@ -39,28 +38,9 @@
                 <div class="welcome-card">
                     <div class="skull-animation">💀</div>
                     <h2>Identifícate</h2>
-                    <p id="authSubtitle">Entra con tu cuenta o crea una nueva</p>
+                    <p>Inicia sesión para jugar</p>
 
-                    <div class="auth-form">
-                        <div class="input-group">
-                            <input type="text" id="authUsername" placeholder="Nombre de usuario" maxlength="20" autocomplete="username">
-                        </div>
-                        <div class="input-group">
-                            <input type="password" id="authPin" placeholder="PIN (4 dígitos)" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password">
-                        </div>
-                        <button class="btn btn-primary btn-large" id="authSubmitBtn" onclick="handleAuthSubmit()" style="width:100%;">
-                            Entrar
-                        </button>
-                        <button class="btn btn-ghost" id="authToggleBtn" onclick="toggleAuthMode()" style="width:100%; margin-top:0.5rem;">
-                            ¿No tienes cuenta? Crear una
-                        </button>
-                    </div>
-
-                    <div class="auth-divider">
-                        <span>o</span>
-                    </div>
-
-                    <button class="btn btn-secondary btn-large" onclick="handleGoogleLogin()" style="width:100%;">
+                    <button class="btn btn-primary btn-large" onclick="handleGoogleLogin()" style="width:100%; margin-top: 1.5rem;">
                         <span class="btn-icon">G</span>
                         Entrar con Google
                     </button>

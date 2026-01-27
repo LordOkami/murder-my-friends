@@ -16,9 +16,6 @@ const DEFAULT_WEAPONS = [
     'Control remoto', 'Pelota de tenis', 'Espátula', 'Regla metálica', 'Botella de vino'
 ];
 
-// Auth state
-let authMode = 'login'; // 'login' or 'register'
-
 /**
  * Initialize app
  */
@@ -37,9 +34,6 @@ async function init() {
         if (user) {
             // Logged in
             document.getElementById('headerActions').style.display = 'flex';
-            // Show link Google button only if no Google provider linked
-            document.getElementById('linkGoogleBtn').style.display = hasGoogleLinked() ? 'none' : 'inline-flex';
-
             // Pre-fill profile name
             const username = await getStoredUsername();
             const profileInput = document.getElementById('profileNameInput');
@@ -63,67 +57,12 @@ async function init() {
 }
 
 /**
- * Toggle between login and register mode
- */
-function toggleAuthMode() {
-    authMode = authMode === 'login' ? 'register' : 'login';
-    const btn = document.getElementById('authSubmitBtn');
-    const toggle = document.getElementById('authToggleBtn');
-    const subtitle = document.getElementById('authSubtitle');
-
-    if (authMode === 'register') {
-        btn.textContent = 'Crear Cuenta';
-        toggle.textContent = '¿Ya tienes cuenta? Entrar';
-        subtitle.textContent = 'Crea tu cuenta con usuario y PIN';
-    } else {
-        btn.textContent = 'Entrar';
-        toggle.textContent = '¿No tienes cuenta? Crear una';
-        subtitle.textContent = 'Entra con tu cuenta o crea una nueva';
-    }
-}
-
-/**
- * Handle auth form submit
- */
-async function handleAuthSubmit() {
-    const username = document.getElementById('authUsername').value.trim();
-    const pin = document.getElementById('authPin').value.trim();
-
-    if (!username) { showToast('Introduce tu nombre de usuario', 'error'); return; }
-    if (!pin || pin.length !== 4 || !/^\d{4}$/.test(pin)) { showToast('El PIN debe ser de 4 dígitos', 'error'); return; }
-
-    try {
-        if (authMode === 'register') {
-            await registerWithPIN(username, pin);
-            showToast('Cuenta creada', 'success');
-        } else {
-            await loginWithPIN(username, pin);
-            showToast('Bienvenido', 'success');
-        }
-    } catch (error) {
-        showToast(error.message, 'error');
-    }
-}
-
-/**
  * Handle Google login
  */
 async function handleGoogleLogin() {
     try {
         await loginWithGoogle();
         showToast('Bienvenido', 'success');
-    } catch (error) {
-        showToast(error.message, 'error');
-    }
-}
-
-/**
- * Handle link Google
- */
-async function handleLinkGoogle() {
-    try {
-        await linkGoogle();
-        document.getElementById('linkGoogleBtn').style.display = 'none';
     } catch (error) {
         showToast(error.message, 'error');
     }
@@ -145,14 +84,6 @@ async function handleLogout() {
  * Setup event listeners
  */
 function setupEventListeners() {
-    // Auth inputs enter key
-    document.getElementById('authUsername')?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('authPin').focus();
-    });
-    document.getElementById('authPin')?.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') handleAuthSubmit();
-    });
-
     // Weapon input enter key
     document.getElementById('weaponNameInput')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') addWeapon();
@@ -582,8 +513,5 @@ window.showKillSelect = showKillSelect;
 window.confirmKill = confirmKill;
 window.executeKill = executeKill;
 window.leaveAndReset = leaveAndReset;
-window.toggleAuthMode = toggleAuthMode;
-window.handleAuthSubmit = handleAuthSubmit;
 window.handleGoogleLogin = handleGoogleLogin;
-window.handleLinkGoogle = handleLinkGoogle;
 window.handleLogout = handleLogout;
