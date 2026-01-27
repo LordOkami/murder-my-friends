@@ -261,6 +261,10 @@ function selectPlayerForMission(playerId) {
         return;
     }
 
+    // Check if target has changed (inherited mission)
+    const originalAssignment = game.assignments.get(playerId);
+    const isInherited = originalAssignment && originalAssignment.targetId !== mission.target.id;
+
     // Update mission card content
     const targetPhotoEl = document.getElementById('targetPhoto');
     const targetNameEl = document.getElementById('targetName');
@@ -274,6 +278,14 @@ function selectPlayerForMission(playerId) {
 
     targetNameEl.textContent = mission.target.name;
     weaponNameEl.textContent = mission.weapon.name;
+
+    // Show inherited mission indicator
+    const missionLabel = document.querySelector('.mission-label');
+    if (isInherited) {
+        missionLabel.innerHTML = 'MISIÓN HEREDADA <span style="font-size: 0.8em;">⚠️</span>';
+    } else {
+        missionLabel.textContent = 'TU MISIÓN';
+    }
 
     // Show mission card
     document.getElementById('missionSelect').classList.add('hidden');
@@ -414,6 +426,27 @@ function updateLobbyUI() {
     document.getElementById('gameCodeDisplay').textContent = game.gameCode;
     renderWeaponsGrid();
     renderPlayersGrid();
+    updateGameProgress();
+}
+
+/**
+ * Update game progress bar
+ */
+function updateGameProgress() {
+    const totalPlayers = game.players.length;
+    const deadPlayers = game.killedPlayers.size;
+    const progressSection = document.getElementById('gameProgressSection');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+
+    if (deadPlayers > 0) {
+        progressSection.style.display = 'block';
+        const percentage = (deadPlayers / (totalPlayers - 1)) * 100;
+        progressFill.style.width = percentage + '%';
+        progressText.textContent = `${deadPlayers} eliminado${deadPlayers > 1 ? 's' : ''}`;
+    } else {
+        progressSection.style.display = 'none';
+    }
 }
 
 /**
@@ -487,3 +520,4 @@ window.copyGameCode = copyGameCode;
 window.escapeHtml = escapeHtml;
 window.createParticles = createParticles;
 window.launchConfetti = launchConfetti;
+window.updateGameProgress = updateGameProgress;
