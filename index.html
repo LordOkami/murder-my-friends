@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murder My Friends</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="css/styles.css">
+    <meta name="description" content="Juego de asesinatos entre amigos. Cada jugador recibe una víctima y un arma secreta.">
+    <meta name="theme-color" content="#0a0a0f">
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Particles background -->
+        <div class="particles" id="particles"></div>
+
+        <!-- Header -->
+        <header class="header">
+            <h1 class="logo" onclick="goToHome()">
+                <span class="logo-icon">🗡️</span>
+                Murder My Friends
+            </h1>
+        </header>
+
+        <!-- Main content -->
+        <main class="main-content" id="mainContent">
+            <!-- Screen 1: Welcome -->
+            <section class="screen active" id="welcomeScreen">
+                <div class="welcome-card">
+                    <div class="skull-animation">💀</div>
+                    <h2>Bienvenido al juego más mortal</h2>
+                    <p>Organiza una partida de asesinatos entre amigos. Cada jugador recibirá en secreto una víctima y un arma.</p>
+                    <div class="welcome-buttons">
+                        <button class="btn btn-primary btn-large" onclick="showScreen('setupScreen')">
+                            <span class="btn-icon">⚔️</span>
+                            Nueva Partida
+                        </button>
+                        <button class="btn btn-secondary" onclick="showScreen('joinScreen')">
+                            <span class="btn-icon">🎭</span>
+                            Unirse a Partida
+                        </button>
+                    </div>
+                </div>
+
+                <div class="rules-section">
+                    <h4>📜 Reglas del Juego</h4>
+                    <ul class="rules-list">
+                        <li>Cada jugador recibe una <strong>víctima secreta</strong> y un <strong>arma</strong></li>
+                        <li>Debes "asesinar" a tu víctima usando el objeto asignado</li>
+                        <li>El asesinato debe ser presenciado o la víctima debe admitirlo</li>
+                        <li>Al eliminar a alguien, <strong>heredas su misión</strong></li>
+                        <li>El último jugador en pie <strong>gana la partida</strong></li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Screen 2: Setup Game -->
+            <section class="screen" id="setupScreen">
+                <div class="setup-container">
+                    <div class="setup-header">
+                        <h2>Configurar Partida</h2>
+                        <p>Añade jugadores y armas del crimen</p>
+                    </div>
+
+                    <!-- Players Section -->
+                    <div class="setup-section">
+                        <div class="section-header">
+                            <h3><span class="section-icon">👥</span> Jugadores</h3>
+                            <span class="counter" id="playerCounter">0</span>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="playerNameInput" placeholder="Nombre del jugador" maxlength="30">
+                            <label class="photo-upload-btn" title="Añadir foto">
+                                <input type="file" id="playerPhotoInput" accept="image/*" capture="user" hidden>
+                                <span>📷</span>
+                            </label>
+                            <button class="btn btn-add" onclick="addPlayer()">+</button>
+                        </div>
+                        <div class="photo-preview" id="photoPreview"></div>
+                        <div class="items-list" id="playersList"></div>
+                    </div>
+
+                    <!-- Weapons Section -->
+                    <div class="setup-section">
+                        <div class="section-header">
+                            <h3><span class="section-icon">🔪</span> Armas</h3>
+                            <span class="counter" id="weaponCounter">0</span>
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="weaponNameInput" placeholder="Nombre del arma" maxlength="30">
+                            <button class="btn btn-add" onclick="addWeapon()">+</button>
+                        </div>
+                        <div class="items-list" id="weaponsList"></div>
+                        <button class="btn btn-ghost" onclick="addDefaultWeapons()">
+                            <span>✨</span> Añadir armas sugeridas
+                        </button>
+                    </div>
+
+                    <!-- Validation Message -->
+                    <div class="validation-message" id="validationMessage"></div>
+
+                    <!-- Start Game Button -->
+                    <button class="btn btn-primary btn-large btn-start" onclick="startGame()" id="startGameBtn" disabled>
+                        <span class="btn-icon">💀</span>
+                        Iniciar Partida
+                    </button>
+
+                    <button class="btn btn-ghost" onclick="showScreen('welcomeScreen')" style="margin-top: 1rem; width: 100%;">
+                        ← Volver al inicio
+                    </button>
+                </div>
+            </section>
+
+            <!-- Screen 3: Join Game -->
+            <section class="screen" id="joinScreen">
+                <div class="join-container">
+                    <h2>Unirse a Partida</h2>
+                    <p>Introduce el código de la partida</p>
+                    <div class="input-group code-input-group">
+                        <input type="text" id="gameCodeInput" placeholder="Código de partida" maxlength="8">
+                        <button class="btn btn-primary" onclick="joinGame()">Unirse</button>
+                    </div>
+                    <button class="btn btn-ghost" onclick="showScreen('welcomeScreen')">← Volver</button>
+                </div>
+            </section>
+
+            <!-- Screen 4: Game Lobby -->
+            <section class="screen" id="lobbyScreen">
+                <div class="lobby-container">
+                    <div class="lobby-header">
+                        <h2>Partida Activa</h2>
+                        <div class="game-code-display">
+                            <span>Código:</span>
+                            <strong id="gameCodeDisplay">XXXX</strong>
+                            <button class="btn-copy" onclick="copyGameCode()" title="Copiar código">📋</button>
+                        </div>
+                    </div>
+
+                    <!-- Public Weapons List -->
+                    <div class="public-weapons">
+                        <h3>🔪 Armas en Juego</h3>
+                        <div class="weapons-grid" id="weaponsGrid"></div>
+                    </div>
+
+                    <!-- Players Status -->
+                    <div class="players-status">
+                        <h3>👥 Jugadores <span class="alive-counter" id="aliveCounter"></span></h3>
+                        <div class="players-grid" id="playersGrid"></div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="lobby-actions">
+                        <button class="btn btn-primary btn-large" onclick="showMissionReveal()">
+                            <span class="btn-icon">🎯</span>
+                            Ver Mi Misión
+                        </button>
+                        <button class="btn btn-danger" onclick="showKillConfirm()">
+                            <span class="btn-icon">💀</span>
+                            Reportar Asesinato
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Screen 5: Mission Reveal -->
+            <section class="screen" id="missionScreen">
+                <div class="mission-container">
+                    <div class="mission-select" id="missionSelect">
+                        <h2>¿Quién eres?</h2>
+                        <p>Selecciona tu nombre para ver tu misión secreta</p>
+                        <div class="player-select-grid" id="playerSelectGrid"></div>
+                        <button class="btn btn-ghost" onclick="showScreen('lobbyScreen')">← Volver al lobby</button>
+                    </div>
+
+                    <div class="mission-reveal hidden" id="missionReveal">
+                        <div class="mission-card" id="missionCard">
+                            <div class="mission-card-inner">
+                                <div class="mission-card-front">
+                                    <div class="card-pattern"></div>
+                                    <span class="tap-hint">Toca para revelar</span>
+                                </div>
+                                <div class="mission-card-back">
+                                    <div class="mission-header">
+                                        <span class="mission-label">TU MISIÓN</span>
+                                    </div>
+                                    <div class="mission-target">
+                                        <span class="target-label">DEBES ELIMINAR A</span>
+                                        <div class="target-photo" id="targetPhoto"></div>
+                                        <span class="target-name" id="targetName"></span>
+                                    </div>
+                                    <div class="mission-weapon">
+                                        <span class="weapon-label">USANDO</span>
+                                        <span class="weapon-name" id="weaponName"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="hideMission()">
+                            <span>🙈</span> Ocultar Misión
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Screen 6: Kill Report -->
+            <section class="screen" id="killScreen">
+                <div class="kill-container">
+                    <h2>💀 Reportar Asesinato</h2>
+                    <p>Selecciona quién ha sido eliminado</p>
+                    <div class="kill-select-grid" id="killSelectGrid"></div>
+                    <div class="kill-actions">
+                        <button class="btn btn-ghost" onclick="showScreen('lobbyScreen')">Cancelar</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Screen 7: Game Over -->
+            <section class="screen" id="gameOverScreen">
+                <div class="game-over-container">
+                    <div class="winner-announcement">
+                        <div class="crown">👑</div>
+                        <h2>¡Tenemos un Ganador!</h2>
+                        <div class="winner-card" id="winnerCard"></div>
+                        <p class="winner-subtitle">El último asesino en pie</p>
+                    </div>
+                    <div class="game-stats" id="gameStats"></div>
+                    <button class="btn btn-primary btn-large" onclick="resetGame()">
+                        <span class="btn-icon">🔄</span>
+                        Nueva Partida
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Modal for confirmations -->
+        <div class="modal-overlay hidden" id="modalOverlay">
+            <div class="modal" id="modal">
+                <div class="modal-content" id="modalContent"></div>
+            </div>
+        </div>
+
+        <!-- Toast notifications -->
+        <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <script src="js/game.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
