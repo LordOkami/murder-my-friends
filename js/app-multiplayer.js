@@ -220,6 +220,64 @@ function backToHome() {
 }
 
 /**
+ * Auth mode state
+ */
+let isRegisterMode = false;
+
+/**
+ * Toggle between login and register
+ */
+function toggleAuthMode() {
+    isRegisterMode = !isRegisterMode;
+    const nameGroup = document.getElementById('authNameGroup');
+    const submitBtn = document.getElementById('authSubmitBtn');
+    const toggleText = document.getElementById('authToggleText');
+    const toggleLink = document.getElementById('authToggleLink');
+
+    if (isRegisterMode) {
+        nameGroup.style.display = '';
+        submitBtn.textContent = 'Crear cuenta';
+        toggleText.textContent = '¿Ya tienes cuenta?';
+        toggleLink.textContent = 'Inicia sesión';
+    } else {
+        nameGroup.style.display = 'none';
+        submitBtn.textContent = 'Entrar';
+        toggleText.textContent = '¿No tienes cuenta?';
+        toggleLink.textContent = 'Regístrate';
+    }
+}
+
+/**
+ * Handle email login or register
+ */
+async function handleEmailLogin() {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+
+    if (!email || !password) {
+        showToast('Introduce email y contraseña', 'error');
+        return;
+    }
+
+    try {
+        if (isRegisterMode) {
+            const name = document.getElementById('authDisplayName').value.trim();
+            if (!name) {
+                showToast('Introduce tu nombre', 'error');
+                return;
+            }
+            await registerWithEmail(email, password, name);
+            showToast('Cuenta creada', 'success');
+        } else {
+            await loginWithEmail(email, password);
+            showToast('Bienvenido', 'success');
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+/**
  * Handle Google login
  */
 async function handleGoogleLogin() {
@@ -229,12 +287,7 @@ async function handleGoogleLogin() {
             showToast('Bienvenido', 'success');
         }
     } catch (error) {
-        // Show full error details for debugging
-        const msg = error.code
-            ? error.code + ': ' + error.message
-            : error.message;
-        showToast(msg, 'error');
-        console.error('Login error full:', error);
+        showToast(error.message, 'error');
     }
 }
 
@@ -265,6 +318,14 @@ function setupEventListeners() {
 
     document.getElementById('profileNameInput')?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') joinWithProfile();
+    });
+
+    document.getElementById('authPassword')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleEmailLogin();
+    });
+
+    document.getElementById('authDisplayName')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleEmailLogin();
     });
 
     document.getElementById('profilePhotoInput')?.addEventListener('change', handleProfilePhoto);
@@ -734,6 +795,8 @@ window.confirmKill = confirmKill;
 window.executeKill = executeKill;
 window.leaveAndReset = leaveAndReset;
 window.handleGoogleLogin = handleGoogleLogin;
+window.handleEmailLogin = handleEmailLogin;
+window.toggleAuthMode = toggleAuthMode;
 window.handleLogout = handleLogout;
 window.showEditProfile = showEditProfile;
 window.saveProfile = saveProfile;

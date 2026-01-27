@@ -41,7 +41,29 @@
                     <h2>Identifícate</h2>
                     <p>Inicia sesión para jugar</p>
 
-                    <button class="btn btn-primary btn-large" onclick="handleGoogleLogin()" style="width:100%; margin-top: 1.5rem;">
+                    <!-- Email/Password Form -->
+                    <div class="auth-form" style="margin-top: 1.5rem;">
+                        <div class="input-group">
+                            <input type="email" id="authEmail" placeholder="Email" autocomplete="email">
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="authPassword" placeholder="Contraseña" autocomplete="current-password">
+                        </div>
+                        <div class="input-group" id="authNameGroup" style="display: none;">
+                            <input type="text" id="authDisplayName" placeholder="Tu nombre" maxlength="20" autocomplete="name">
+                        </div>
+                        <button class="btn btn-primary btn-large" id="authSubmitBtn" onclick="handleEmailLogin()" style="width: 100%;">
+                            Entrar
+                        </button>
+                        <p class="auth-toggle">
+                            <span id="authToggleText">¿No tienes cuenta?</span>
+                            <a href="#" id="authToggleLink" onclick="toggleAuthMode(); return false;">Regístrate</a>
+                        </p>
+                    </div>
+
+                    <div class="auth-divider"><span>o</span></div>
+
+                    <button class="btn btn-secondary" onclick="handleGoogleLogin()" style="width:100%;">
                         <span class="btn-icon">G</span>
                         Entrar con Google
                     </button>

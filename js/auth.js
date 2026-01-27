@@ -1,5 +1,5 @@
 /**
- * Murder My Friends - Authentication (Google only)
+ * Murder My Friends - Authentication (Google + Email/Password)
  */
 
 // Lazy-init to avoid "no Firebase App" errors
@@ -45,6 +45,52 @@ async function loginWithGoogle() {
             throw new Error('Inicio cancelado');
         }
         throw error;
+    }
+}
+
+async function registerWithEmail(email, password, displayName) {
+    try {
+        const result = await getAuth().createUserWithEmailAndPassword(email, password);
+        const user = result.user;
+        await user.updateProfile({ displayName: displayName });
+        await firebase.database().ref('users/' + user.uid).set({
+            username: displayName,
+            photo: null,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+        return user;
+    } catch (error) {
+        switch (error.code) {
+            case 'auth/email-already-in-use':
+                throw new Error('Este email ya está registrado');
+            case 'auth/invalid-email':
+                throw new Error('Email no válido');
+            case 'auth/weak-password':
+                throw new Error('La contraseña debe tener al menos 6 caracteres');
+            default:
+                throw error;
+        }
+    }
+}
+
+async function loginWithEmail(email, password) {
+    try {
+        const result = await getAuth().signInWithEmailAndPassword(email, password);
+        await ensureUserCreated(result.user);
+        return result.user;
+    } catch (error) {
+        switch (error.code) {
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':
+                throw new Error('Email o contraseña incorrectos');
+            case 'auth/invalid-email':
+                throw new Error('Email no válido');
+            case 'auth/too-many-requests':
+                throw new Error('Demasiados intentos. Espera un momento');
+            default:
+                throw error;
+        }
     }
 }
 
@@ -109,3 +155,5 @@ window.getAuth = getAuth;
 window.getUserProfile = getUserProfile;
 window.saveUserProfile = saveUserProfile;
 window.ensureUserCreated = ensureUserCreated;
+window.registerWithEmail = registerWithEmail;
+window.loginWithEmail = loginWithEmail;

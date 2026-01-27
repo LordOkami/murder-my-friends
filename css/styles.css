@@ -1973,6 +1973,70 @@ body {
 }
 
 /* ============================================
+   Auth Form
+   ============================================ */
+.auth-form .input-group {
+    margin-bottom: 0.75rem;
+}
+
+.auth-form input[type="email"],
+.auth-form input[type="password"],
+.auth-form input[type="text"] {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: var(--transition-fast);
+    box-sizing: border-box;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: var(--accent-purple);
+}
+
+.auth-toggle {
+    text-align: center;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.auth-toggle a {
+    color: var(--accent-purple);
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 0.25rem;
+}
+
+.auth-toggle a:hover {
+    color: var(--accent-red);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    margin: 1.25rem 0;
+    gap: 1rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+
+.auth-divider span {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* ============================================
    Custom Profile Toggle
    ============================================ */
 .custom-profile-toggle {
