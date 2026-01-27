@@ -30,12 +30,12 @@ async function init() {
 
     if (!firebaseReady) return;
 
-    // Handle redirect result from mobile Google login
-    await handleRedirectResult();
-
     getAuth().onAuthStateChanged(async (user) => {
         if (user) {
             document.getElementById('headerActions').style.display = 'flex';
+
+            // Ensure user DB record exists (covers redirect login)
+            await ensureUserCreated(user);
 
             // Load profile
             userProfile = await getUserProfile();

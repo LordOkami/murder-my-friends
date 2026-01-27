@@ -28,18 +28,20 @@ function isMobile() {
 
 async function loginWithGoogle() {
     try {
-        if (isMobile()) {
-            await getAuth().signInWithRedirect(getGoogleProvider());
-            // Page will reload — onAuthStateChanged handles the rest
-            return null;
-        } else {
-            const result = await getAuth().signInWithPopup(getGoogleProvider());
-            await ensureUserCreated(result.user);
-            return result.user;
-        }
+        // Try popup first (works on desktop and some mobile browsers)
+        const result = await getAuth().signInWithPopup(getGoogleProvider());
+        await ensureUserCreated(result.user);
+        return result.user;
     } catch (error) {
         if (error.code === 'auth/popup-closed-by-user') {
             throw new Error('Inicio cancelado');
+        }
+        // Popup blocked or failed on mobile — fall back to redirect
+        if (error.code === 'auth/popup-blocked' ||
+            error.code === 'auth/cancelled-popup-request' ||
+            error.code === 'auth/operation-not-supported-in-this-environment') {
+            await getAuth().signInWithRedirect(getGoogleProvider());
+            return null;
         }
         throw error;
     }
@@ -117,3 +119,4 @@ window.getAuth = getAuth;
 window.getUserProfile = getUserProfile;
 window.saveUserProfile = saveUserProfile;
 window.handleRedirectResult = handleRedirectResult;
+window.ensureUserCreated = ensureUserCreated;
