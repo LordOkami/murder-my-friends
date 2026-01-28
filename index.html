@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Murder My Friends</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=2">
     <meta name="description" content="Juego de asesinatos entre amigos. Cada jugador recibe una víctima y un arma secreta.">
     <meta name="theme-color" content="#0a0a0f">
     <link rel="manifest" href="manifest.json">
@@ -36,27 +36,30 @@
         <main class="main-content" id="mainContent">
             <!-- Screen: Auth -->
             <section class="screen active" id="authScreen">
-                <div class="auth-card">
-                    <div class="skull-animation">💀</div>
-                    <h2>Identifícate</h2>
-                    <p class="auth-subtitle">Inicia sesión para jugar</p>
+                <div class="auth-container">
+                    <div class="auth-hero">
+                        <div class="skull-animation">💀</div>
+                        <h2 class="auth-title">Murder My Friends</h2>
+                        <p class="auth-subtitle">Inicia sesión para jugar</p>
+                    </div>
 
-                    <div class="auth-form">
-                        <input type="email" id="authEmail" class="auth-input" placeholder="Email" autocomplete="email">
-                        <input type="password" id="authPassword" class="auth-input" placeholder="Contraseña" autocomplete="current-password">
-                        <input type="text" id="authDisplayName" class="auth-input auth-name-input" placeholder="Tu nombre" maxlength="20" autocomplete="name" style="display: none;">
-                        <button class="btn btn-primary btn-large auth-submit" id="authSubmitBtn" onclick="handleEmailLogin()">
+                    <form class="auth-form" id="authForm" onsubmit="handleEmailLogin(); return false;">
+                        <input type="email" id="authEmail" class="auth-input" placeholder="Email" autocomplete="email" required>
+                        <input type="password" id="authPassword" class="auth-input" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="current-password" required minlength="6">
+                        <input type="text" id="authDisplayName" class="auth-input auth-hidden" placeholder="Tu nombre en el juego" maxlength="20" autocomplete="name">
+                        <button type="submit" class="btn btn-primary btn-large auth-submit" id="authSubmitBtn">
                             Entrar
                         </button>
-                        <p class="auth-toggle">
-                            <span id="authToggleText">¿No tienes cuenta?</span>
-                            <a href="#" id="authToggleLink" onclick="toggleAuthMode(); return false;">Regístrate</a>
-                        </p>
-                    </div>
+                    </form>
+
+                    <p class="auth-toggle">
+                        <span id="authToggleText">¿No tienes cuenta?</span>
+                        <a href="#" id="authToggleLink" onclick="toggleAuthMode(); return false;">Regístrate</a>
+                    </p>
 
                     <div class="auth-divider"><span>o</span></div>
 
-                    <button class="btn btn-google" onclick="handleGoogleLogin()">
+                    <button class="btn btn-google" onclick="handleGoogleLogin()" type="button">
                         <svg class="google-icon" viewBox="0 0 24 24" width="20" height="20">
                             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
                             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -444,10 +447,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
     <!-- App Scripts -->
-    <script src="js/firebase-config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/multiplayer.js"></script>
-    <script src="js/ui-multiplayer.js"></script>
-    <script src="js/app-multiplayer.js"></script>
+    <script src="js/firebase-config.js?v=2"></script>
+    <script src="js/auth.js?v=2"></script>
+    <script src="js/multiplayer.js?v=2"></script>
+    <script src="js/ui-multiplayer.js?v=2"></script>
+    <script src="js/app-multiplayer.js?v=2"></script>
 </body>
 </html>
