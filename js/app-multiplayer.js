@@ -253,6 +253,9 @@ function toggleAuthMode() {
  * Handle email login or register
  */
 async function handleEmailLogin() {
+    const btn = document.getElementById('authSubmitBtn');
+    if (btn.disabled) return;
+
     const email = document.getElementById('authEmail').value.trim();
     const password = document.getElementById('authPassword').value;
 
@@ -261,11 +264,17 @@ async function handleEmailLogin() {
         return;
     }
 
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Cargando...';
+
     try {
         if (isRegisterMode) {
             const name = document.getElementById('authDisplayName').value.trim();
             if (!name) {
                 showToast('Introduce tu nombre', 'error');
+                btn.disabled = false;
+                btn.textContent = originalText;
                 return;
             }
             await registerWithEmail(email, password, name);
@@ -275,7 +284,15 @@ async function handleEmailLogin() {
             showToast('Bienvenido', 'success');
         }
     } catch (error) {
-        showToast(error.message, 'error');
+        if (error.notRegistered) {
+            showToast('Este email no está registrado', 'error');
+            if (!isRegisterMode) toggleAuthMode();
+            document.getElementById('authEmail').value = email;
+        } else {
+            showToast(error.message, 'error');
+        }
+        btn.disabled = false;
+        btn.textContent = originalText;
     }
 }
 

@@ -80,7 +80,11 @@ async function loginWithEmail(email, password) {
         return result.user;
     } catch (error) {
         switch (error.code) {
-            case 'auth/user-not-found':
+            case 'auth/user-not-found': {
+                const err = new Error('Este email no está registrado');
+                err.notRegistered = true;
+                throw err;
+            }
             case 'auth/wrong-password':
             case 'auth/invalid-credential':
                 throw new Error('Email o contraseña incorrectos');
