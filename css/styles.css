@@ -2169,6 +2169,152 @@ body {
     height: 18px;
 }
 
+/* ============================================
+   Lobby Weapons (editable chips)
+   ============================================ */
+.lobby-weapons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.weapon-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.weapon-chip-remove {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0 0.15rem;
+    transition: var(--transition-fast);
+}
+
+.weapon-chip-remove:hover {
+    color: var(--accent-red);
+}
+
+.weapon-add-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.weapon-add-row input[type="text"] {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-family: var(--font-body);
+}
+
+.weapon-add-row input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent-red);
+    box-shadow: 0 0 0 3px var(--accent-red-glow);
+}
+
+.weapon-add-row input[type="text"]::placeholder {
+    color: var(--text-muted);
+}
+
+/* Suggestions Section */
+.suggestions-section {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.suggestions-section h3 {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    color: var(--accent-gold);
+}
+
+.suggestions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+}
+
+.suggestion-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.suggestion-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.suggestion-author {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.suggestion-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-approve,
+.btn-reject {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-fast);
+}
+
+.btn-approve {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green);
+}
+
+.btn-approve:hover {
+    background: rgba(34, 197, 94, 0.3);
+}
+
+.btn-reject {
+    background: rgba(255, 51, 102, 0.15);
+    color: var(--accent-red);
+}
+
+.btn-reject:hover {
+    background: rgba(255, 51, 102, 0.3);
+}
+
 /* Player Count Badge */
 .player-count {
     background: var(--accent-purple);

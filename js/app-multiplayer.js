@@ -331,6 +331,14 @@ function setupEventListeners() {
         if (e.key === 'Enter') addWeapon();
     });
 
+    document.getElementById('lobbyWeaponInput')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addLobbyWeapon();
+    });
+
+    document.getElementById('lobbySuggestInput')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') suggestWeaponFromLobby();
+    });
+
     document.getElementById('gameCodeInput')?.addEventListener('input', (e) => {
         e.target.value = e.target.value.toUpperCase();
     });
@@ -632,8 +640,15 @@ function handleWaitingState(gameState) {
         showScreen('lobbyScreen');
     }
 
-    renderWeaponsGrid(gameState.weapons, 'weaponsGrid');
+    renderLobbyWeapons(gameState.weapons, activeGame.isHost);
     renderPlayersGridLobby(gameState.players, 'playersGrid');
+
+    if (activeGame.isHost) {
+        renderWeaponSuggestions(gameState.weaponSuggestions || null);
+    } else {
+        const section = document.getElementById('suggestionsSection');
+        if (section) section.style.display = 'none';
+    }
 
     const hostControls = document.getElementById('hostControls');
     const waitingMessage = document.getElementById('waitingMessage');
@@ -789,6 +804,68 @@ async function leaveAndReset() {
     showToast('Has salido de la partida', 'info');
 }
 
+/**
+ * Add weapon from lobby (host)
+ */
+async function addLobbyWeapon() {
+    const input = document.getElementById('lobbyWeaponInput');
+    const name = input.value.trim();
+    if (!name) { showToast('Introduce un nombre', 'error'); return; }
+    const current = activeGame.gameState.weapons || [];
+    if (current.includes(name)) { showToast('Ya existe esa arma', 'error'); return; }
+    try {
+        await activeGame.addWeaponToGame(name);
+        input.value = '';
+        showToast(`${name} añadido`, 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+/**
+ * Remove weapon from lobby (host)
+ */
+async function removeLobbyWeapon(index) {
+    try {
+        const name = activeGame.gameState.weapons[index];
+        await activeGame.removeWeaponFromGame(index);
+        showToast(`${name} eliminado`, 'info');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+/**
+ * Suggest weapon from lobby (non-host)
+ */
+async function suggestWeaponFromLobby() {
+    const input = document.getElementById('lobbySuggestInput');
+    const name = input.value.trim();
+    if (!name) { showToast('Introduce un nombre', 'error'); return; }
+    try {
+        const player = activeGame.gameState.players[activeGame.playerId];
+        await activeGame.suggestWeapon(name, player?.name || 'Jugador');
+        input.value = '';
+        showToast('Sugerencia enviada', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+/**
+ * Approve suggestion (host)
+ */
+async function approveSuggestion(id, name) {
+    try {
+        await activeGame.approveSuggestion(id, name);
+        showToast(`${name} aprobado`, 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+/**
+ * Reject suggestion (host)
+ */
+async function rejectSuggestion(id) {
+    try {
+        await activeGame.rejectSuggestion(id);
+        showToast('Sugerencia rechazada', 'info');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', init);
 
@@ -815,3 +892,8 @@ window.toggleCustomProfile = toggleCustomProfile;
 window.backToHome = backToHome;
 window.enterGame = enterGame;
 window.refreshHomeScreen = refreshHomeScreen;
+window.addLobbyWeapon = addLobbyWeapon;
+window.removeLobbyWeapon = removeLobbyWeapon;
+window.suggestWeaponFromLobby = suggestWeaponFromLobby;
+window.approveSuggestion = approveSuggestion;
+window.rejectSuggestion = rejectSuggestion;

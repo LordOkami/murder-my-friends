@@ -385,6 +385,58 @@ class MultiplayerGame {
     }
 
     /**
+     * Add weapon to game (host only)
+     */
+    async addWeaponToGame(name) {
+        if (!this.isHost) throw new Error('Solo el host puede añadir armas');
+        const weapons = this.gameState.weapons || [];
+        weapons.push(name);
+        await this.gameRef.child('weapons').set(weapons);
+    }
+
+    /**
+     * Remove weapon from game by index (host only)
+     */
+    async removeWeaponFromGame(index) {
+        if (!this.isHost) throw new Error('Solo el host puede quitar armas');
+        const weapons = this.gameState.weapons || [];
+        weapons.splice(index, 1);
+        await this.gameRef.child('weapons').set(weapons);
+    }
+
+    /**
+     * Suggest a weapon (any player)
+     */
+    async suggestWeapon(name, playerName) {
+        await this.gameRef.child('weaponSuggestions').push({
+            name: name,
+            suggestedBy: this.playerId,
+            suggestedByName: playerName
+        });
+    }
+
+    /**
+     * Approve a weapon suggestion (host only)
+     */
+    async approveSuggestion(id, name) {
+        if (!this.isHost) throw new Error('Solo el host puede aprobar');
+        const weapons = this.gameState.weapons || [];
+        weapons.push(name);
+        await this.gameRef.update({
+            weapons: weapons,
+            ['weaponSuggestions/' + id]: null
+        });
+    }
+
+    /**
+     * Reject a weapon suggestion (host only)
+     */
+    async rejectSuggestion(id) {
+        if (!this.isHost) throw new Error('Solo el host puede rechazar');
+        await this.gameRef.child('weaponSuggestions/' + id).remove();
+    }
+
+    /**
      * Leave game
      */
     async leaveGame() {

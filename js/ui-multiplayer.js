@@ -405,6 +405,59 @@ function copyGameCode() {
     }
 }
 
+/**
+ * Render lobby weapons as chips (editable for host, read-only for others)
+ */
+function renderLobbyWeapons(weapons, isHost) {
+    const container = document.getElementById('lobbyWeapons');
+    const countEl = document.getElementById('lobbyWeaponCount');
+    if (!container) return;
+
+    const list = weapons || [];
+    if (countEl) countEl.textContent = list.length;
+
+    container.innerHTML = list.map((weapon, i) => {
+        const name = typeof weapon === 'object' ? weapon.name : weapon;
+        const removeBtn = isHost
+            ? `<button class="weapon-chip-remove" onclick="removeLobbyWeapon(${i})">&times;</button>`
+            : '';
+        return `<span class="weapon-chip">${escapeHtml(name)}${removeBtn}</span>`;
+    }).join('');
+
+    const addRow = document.getElementById('lobbyWeaponAddRow');
+    const suggestRow = document.getElementById('lobbySuggestRow');
+    if (addRow) addRow.style.display = isHost ? 'flex' : 'none';
+    if (suggestRow) suggestRow.style.display = isHost ? 'none' : 'flex';
+}
+
+/**
+ * Render weapon suggestions for host
+ */
+function renderWeaponSuggestions(suggestions) {
+    const section = document.getElementById('suggestionsSection');
+    const list = document.getElementById('suggestionsList');
+    if (!section || !list) return;
+
+    if (!suggestions || Object.keys(suggestions).length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+    list.innerHTML = Object.entries(suggestions).map(([id, s]) => `
+        <div class="suggestion-item">
+            <div class="suggestion-info">
+                <span class="suggestion-name">${escapeHtml(s.name)}</span>
+                <span class="suggestion-author">por ${escapeHtml(s.suggestedByName)}</span>
+            </div>
+            <div class="suggestion-actions">
+                <button class="btn-approve" onclick="approveSuggestion('${escapeHtml(id)}', '${escapeHtml(s.name)}')" title="Aprobar">&#10003;</button>
+                <button class="btn-reject" onclick="rejectSuggestion('${escapeHtml(id)}')" title="Rechazar">&times;</button>
+            </div>
+        </div>
+    `).join('');
+}
+
 // Export functions
 window.showScreen = showScreen;
 window.goToHome = goToHome;
@@ -428,3 +481,5 @@ window.launchConfetti = launchConfetti;
 window.copyGameCode = copyGameCode;
 window.renderProfileSummary = renderProfileSummary;
 window.renderMyGamesList = renderMyGamesList;
+window.renderLobbyWeapons = renderLobbyWeapons;
+window.renderWeaponSuggestions = renderWeaponSuggestions;

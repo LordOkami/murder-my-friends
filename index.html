@@ -257,10 +257,26 @@
                         <p>Esperando jugadores...</p>
                     </div>
 
-                    <!-- Public Weapons List -->
+                    <!-- Lobby Weapons Section -->
                     <div class="public-weapons">
-                        <h3>🔪 Armas en Juego</h3>
-                        <div class="weapons-grid" id="weaponsGrid"></div>
+                        <h3>🔪 Armas en Juego <span class="counter" id="lobbyWeaponCount">0</span></h3>
+                        <div class="lobby-weapons" id="lobbyWeapons"></div>
+                        <!-- Host: add weapon input -->
+                        <div class="weapon-add-row" id="lobbyWeaponAddRow" style="display:none;">
+                            <input type="text" id="lobbyWeaponInput" placeholder="Nueva arma" maxlength="30">
+                            <button class="btn btn-add" onclick="addLobbyWeapon()">+</button>
+                        </div>
+                        <!-- Non-host: suggest weapon input -->
+                        <div class="weapon-add-row" id="lobbySuggestRow" style="display:none;">
+                            <input type="text" id="lobbySuggestInput" placeholder="Sugerir arma" maxlength="30">
+                            <button class="btn btn-add" onclick="suggestWeaponFromLobby()">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Weapon Suggestions (host only) -->
+                    <div class="suggestions-section" id="suggestionsSection" style="display:none;">
+                        <h3>💡 Sugerencias pendientes</h3>
+                        <div class="suggestions-list" id="suggestionsList"></div>
                     </div>
 
                     <!-- Players who have joined -->
