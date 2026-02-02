@@ -48,14 +48,14 @@ async function loginWithGoogle() {
     }
 }
 
-async function registerWithEmail(email, password, displayName) {
+async function registerWithEmail(email, password, displayName, photo) {
     try {
         const result = await getAuth().createUserWithEmailAndPassword(email, password);
         const user = result.user;
         await user.updateProfile({ displayName: displayName });
         await firebase.database().ref('users/' + user.uid).set({
             username: displayName,
-            photo: null,
+            photo: photo || null,
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
         return user;
@@ -103,7 +103,7 @@ async function ensureUserCreated(user) {
     if (!snap.exists()) {
         await firebase.database().ref('users/' + user.uid).set({
             username: user.displayName || 'Jugador',
-            photo: null,
+            photo: user.photoURL || null,
             createdAt: firebase.database.ServerValue.TIMESTAMP
         });
     }

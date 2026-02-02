@@ -9,6 +9,8 @@ let pendingPhoto = null;
 let pendingGameCode = null;
 let userProfile = null;
 let editProfilePhoto = null;
+let pendingAction = null;
+let pendingAuthPhoto = null;
 
 // Default weapons
 const DEFAULT_WEAPONS = [
@@ -30,9 +32,24 @@ async function init() {
 
     if (!firebaseReady) return;
 
+    // Restore pendingAction from sessionStorage (Google redirect on mobile)
+    try {
+        const stored = sessionStorage.getItem('pendingAction');
+        if (stored) {
+            pendingAction = JSON.parse(stored);
+            sessionStorage.removeItem('pendingAction');
+        }
+        const storedWeapons = sessionStorage.getItem('pendingWeapons');
+        if (storedWeapons) {
+            weapons = JSON.parse(storedWeapons);
+            sessionStorage.removeItem('pendingWeapons');
+        }
+    } catch (e) { /* ignore */ }
+
     getAuth().onAuthStateChanged(async (user) => {
         if (user) {
-            document.getElementById('headerActions').style.display = 'flex';
+            document.getElementById('headerLoggedIn').style.display = 'flex';
+            document.getElementById('headerLoggedOut').style.display = 'none';
 
             // Ensure user DB record exists (covers redirect login)
             await ensureUserCreated(user);
@@ -40,12 +57,20 @@ async function init() {
             // Load profile
             userProfile = await getUserProfile();
 
-            // Refresh home
-            refreshHomeScreen();
-            showScreen('welcomeScreen');
+            // Update welcome screen for logged-in state
+            updateWelcomeForLoggedIn();
+
+            // Execute pending action if any (e.g. after auth redirect)
+            if (pendingAction) {
+                executePendingAction();
+            }
         } else {
-            document.getElementById('headerActions').style.display = 'none';
-            showScreen('authScreen');
+            document.getElementById('headerLoggedIn').style.display = 'none';
+            document.getElementById('headerLoggedOut').style.display = '';
+            userProfile = null;
+
+            // Update welcome screen for logged-out state
+            updateWelcomeForLoggedOut();
         }
     });
 }
@@ -54,10 +79,168 @@ async function init() {
  * Refresh home screen: profile summary + games list
  */
 async function refreshHomeScreen() {
+    if (!getCurrentUid()) return;
     if (userProfile) {
         renderProfileSummary(userProfile);
     }
     await loadMyGames();
+}
+
+/**
+ * Update welcome screen for logged-in user
+ */
+function updateWelcomeForLoggedIn() {
+    document.getElementById('profileSummary').style.display = '';
+    document.getElementById('myGamesSection').style.display = '';
+    if (userProfile) {
+        renderProfileSummary(userProfile);
+    }
+    loadMyGames();
+}
+
+/**
+ * Update welcome screen for logged-out user
+ */
+function updateWelcomeForLoggedOut() {
+    document.getElementById('profileSummary').style.display = 'none';
+    document.getElementById('myGamesSection').style.display = 'none';
+}
+
+/**
+ * Show auth screen, optionally storing a pending action to resume after login
+ */
+function showAuthScreen(action) {
+    if (action) {
+        pendingAction = action;
+        // Persist for Google redirect on mobile
+        try {
+            sessionStorage.setItem('pendingAction', JSON.stringify(action));
+            if (weapons.length > 0) {
+                sessionStorage.setItem('pendingWeapons', JSON.stringify(weapons));
+            }
+        } catch (e) { /* ignore */ }
+    } else {
+        pendingAction = { type: 'headerLogin' };
+    }
+
+    // Reset auth form state
+    isRegisterMode = false;
+    const nameInput = document.getElementById('authDisplayName');
+    const photoSection = document.getElementById('authPhotoSection');
+    const submitBtn = document.getElementById('authSubmitBtn');
+    const toggleText = document.getElementById('authToggleText');
+    const toggleLink = document.getElementById('authToggleLink');
+
+    nameInput.classList.add('auth-hidden');
+    nameInput.required = false;
+    photoSection.classList.add('auth-hidden');
+    submitBtn.textContent = 'Entrar';
+    toggleText.textContent = '¿No tienes cuenta?';
+    toggleLink.textContent = 'Regístrate';
+    pendingAuthPhoto = null;
+
+    // Clear form values
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPassword').value = '';
+    nameInput.value = '';
+    const preview = document.getElementById('authPhotoPreview');
+    preview.innerHTML = '<span class="profile-photo-placeholder" style="font-size:2rem;">📷</span>';
+    preview.classList.remove('has-photo');
+
+    showScreen('authScreen');
+}
+
+/**
+ * Cancel auth and return to welcome
+ */
+function cancelAuth() {
+    pendingAction = null;
+    pendingAuthPhoto = null;
+    try {
+        sessionStorage.removeItem('pendingAction');
+        sessionStorage.removeItem('pendingWeapons');
+    } catch (e) { /* ignore */ }
+    showScreen('welcomeScreen');
+}
+
+/**
+ * Execute a pending action after successful auth
+ */
+function executePendingAction() {
+    const action = pendingAction;
+    pendingAction = null;
+    try {
+        sessionStorage.removeItem('pendingAction');
+    } catch (e) { /* ignore */ }
+
+    if (!action) return;
+
+    switch (action.type) {
+        case 'createGame':
+            doCreateMultiplayerGame();
+            break;
+        case 'joinGame':
+            pendingGameCode = action.code;
+            pendingPhoto = null;
+            prepareProfileScreen();
+            showScreen('profileScreen');
+            break;
+        case 'headerLogin':
+            // Just refresh welcome, already handled by onAuthStateChanged
+            showScreen('welcomeScreen');
+            break;
+    }
+}
+
+/**
+ * Internal: actually create the multiplayer game (after auth is confirmed)
+ */
+async function doCreateMultiplayerGame() {
+    if (weapons.length < 3) {
+        showToast('Añade al menos 3 armas', 'error');
+        showScreen('createGameScreen');
+        return;
+    }
+
+    try {
+        showToast('Creando partida...', 'info');
+        const gameCode = await activeGame.createGame(weapons);
+
+        activeGame.onGameUpdate = handleGameUpdate;
+
+        pendingGameCode = gameCode;
+        prepareProfileScreen();
+        showScreen('profileScreen');
+        showToast('Partida creada. Ahora crea tu perfil.', 'success');
+
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+/**
+ * Handle auth photo upload
+ */
+function handleAuthPhoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        showToast('Selecciona una imagen', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        resizeImage(event.target.result, 200, 200, (resized) => {
+            pendingAuthPhoto = resized;
+            const preview = document.getElementById('authPhotoPreview');
+            preview.innerHTML = `<img src="${resized}" alt="Tu foto">`;
+            preview.classList.add('has-photo');
+            showToast('Foto lista', 'success');
+        });
+    };
+    reader.readAsDataURL(file);
 }
 
 /**
@@ -230,6 +413,7 @@ let isRegisterMode = false;
 function toggleAuthMode() {
     isRegisterMode = !isRegisterMode;
     const nameInput = document.getElementById('authDisplayName');
+    const photoSection = document.getElementById('authPhotoSection');
     const submitBtn = document.getElementById('authSubmitBtn');
     const toggleText = document.getElementById('authToggleText');
     const toggleLink = document.getElementById('authToggleLink');
@@ -237,12 +421,15 @@ function toggleAuthMode() {
     if (isRegisterMode) {
         nameInput.classList.remove('auth-hidden');
         nameInput.required = true;
+        photoSection.classList.remove('auth-hidden');
         submitBtn.textContent = 'Crear cuenta';
         toggleText.textContent = '¿Ya tienes cuenta?';
         toggleLink.textContent = 'Inicia sesión';
     } else {
         nameInput.classList.add('auth-hidden');
         nameInput.required = false;
+        photoSection.classList.add('auth-hidden');
+        pendingAuthPhoto = null;
         submitBtn.textContent = 'Entrar';
         toggleText.textContent = '¿No tienes cuenta?';
         toggleLink.textContent = 'Regístrate';
@@ -277,7 +464,7 @@ async function handleEmailLogin() {
                 btn.textContent = originalText;
                 return;
             }
-            await registerWithEmail(email, password, name);
+            await registerWithEmail(email, password, name, pendingAuthPhoto);
             showToast('Cuenta creada', 'success');
         } else {
             await loginWithEmail(email, password);
@@ -320,6 +507,7 @@ async function handleLogout() {
     }
     userProfile = null;
     await logout();
+    showScreen('welcomeScreen');
     showToast('Sesión cerrada', 'info');
 }
 
@@ -350,6 +538,8 @@ function setupEventListeners() {
     document.getElementById('profilePhotoInput')?.addEventListener('change', handleProfilePhoto);
 
     document.getElementById('editProfilePhotoInput')?.addEventListener('change', handleEditProfilePhoto);
+
+    document.getElementById('authPhotoInput')?.addEventListener('change', handleAuthPhoto);
 
     document.getElementById('missionCard')?.addEventListener('click', toggleMissionCard);
 
@@ -492,20 +682,13 @@ async function createMultiplayerGame() {
         return;
     }
 
-    try {
-        showToast('Creando partida...', 'info');
-        const gameCode = await activeGame.createGame(weapons);
-
-        activeGame.onGameUpdate = handleGameUpdate;
-
-        pendingGameCode = gameCode;
-        prepareProfileScreen();
-        showScreen('profileScreen');
-        showToast('Partida creada. Ahora crea tu perfil.', 'success');
-
-    } catch (error) {
-        showToast(error.message, 'error');
+    // Require auth
+    if (!getCurrentUid()) {
+        showAuthScreen({ type: 'createGame' });
+        return;
     }
+
+    await doCreateMultiplayerGame();
 }
 
 /**
@@ -555,7 +738,15 @@ function showJoinProfile() {
         return;
     }
 
-    pendingGameCode = code.toUpperCase();
+    const upperCode = code.toUpperCase();
+
+    // Require auth
+    if (!getCurrentUid()) {
+        showAuthScreen({ type: 'joinGame', code: upperCode });
+        return;
+    }
+
+    pendingGameCode = upperCode;
     pendingPhoto = null;
 
     prepareProfileScreen();
@@ -892,6 +1083,8 @@ window.toggleCustomProfile = toggleCustomProfile;
 window.backToHome = backToHome;
 window.enterGame = enterGame;
 window.refreshHomeScreen = refreshHomeScreen;
+window.showAuthScreen = showAuthScreen;
+window.cancelAuth = cancelAuth;
 window.addLobbyWeapon = addLobbyWeapon;
 window.removeLobbyWeapon = removeLobbyWeapon;
 window.suggestWeaponFromLobby = suggestWeaponFromLobby;

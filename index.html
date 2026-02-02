@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Murder My Friends</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="stylesheet" href="css/styles.css?v=3">
+    <link rel="stylesheet" href="css/styles.css?v=4">
     <meta name="description" content="Juego de asesinatos entre amigos. Cada jugador recibe una víctima y un arma secreta.">
     <meta name="theme-color" content="#0a0a0f">
     <link rel="manifest" href="manifest.json">
@@ -26,16 +26,21 @@
                 <span class="logo-icon">🗡️</span>
                 Murder My Friends
             </h1>
-            <div class="header-actions" id="headerActions" style="display: none;">
-                <button class="btn btn-ghost btn-sm" onclick="showEditProfile()" title="Perfil">👤</button>
-                <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Salir</button>
+            <div class="header-actions" id="headerActions">
+                <div id="headerLoggedOut">
+                    <button class="btn btn-ghost btn-sm" onclick="showAuthScreen()">Iniciar sesión</button>
+                </div>
+                <div id="headerLoggedIn" style="display: none; gap: 0.5rem; align-items: center;">
+                    <button class="btn btn-ghost btn-sm" onclick="showEditProfile()" title="Perfil">👤</button>
+                    <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Salir</button>
+                </div>
             </div>
         </header>
 
         <!-- Main content -->
         <main class="main-content" id="mainContent">
             <!-- Screen: Auth -->
-            <section class="screen active" id="authScreen">
+            <section class="screen" id="authScreen">
                 <div class="auth-container">
                     <div class="auth-hero">
                         <div class="skull-animation">💀</div>
@@ -47,6 +52,17 @@
                         <input type="email" id="authEmail" class="auth-input" placeholder="Email" autocomplete="email" required>
                         <input type="password" id="authPassword" class="auth-input" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="current-password" required minlength="6">
                         <input type="text" id="authDisplayName" class="auth-input auth-hidden" placeholder="Tu nombre en el juego" maxlength="20" autocomplete="name">
+
+                        <div id="authPhotoSection" class="auth-photo-section auth-hidden">
+                            <div class="profile-photo-preview" id="authPhotoPreview" style="width:80px;height:80px;">
+                                <span class="profile-photo-placeholder" style="font-size:2rem;">📷</span>
+                            </div>
+                            <label class="btn btn-secondary btn-sm">
+                                <input type="file" id="authPhotoInput" accept="image/*" hidden>
+                                📸 Foto de perfil
+                            </label>
+                        </div>
+
                         <button type="submit" class="btn btn-primary btn-large auth-submit" id="authSubmitBtn">
                             Entrar
                         </button>
@@ -68,13 +84,17 @@
                         </svg>
                         Entrar con Google
                     </button>
+
+                    <button class="btn btn-ghost" onclick="cancelAuth()" style="margin-top: 0.5rem; width: 100%;">
+                        ← Volver
+                    </button>
                 </div>
             </section>
 
             <!-- Screen: Welcome -->
-            <section class="screen" id="welcomeScreen">
+            <section class="screen active" id="welcomeScreen">
                 <!-- Profile Summary -->
-                <div class="profile-summary" id="profileSummary">
+                <div class="profile-summary" id="profileSummary" style="display:none;">
                     <div class="profile-summary-avatar" id="profileSummaryAvatar">💀</div>
                     <div class="profile-summary-info">
                         <span class="profile-summary-name" id="profileSummaryName">Jugador</span>
@@ -94,7 +114,7 @@
                 </div>
 
                 <!-- My Games List -->
-                <div class="my-games-section">
+                <div class="my-games-section" id="myGamesSection" style="display:none;">
                     <h3>🎮 Tus Partidas</h3>
                     <div class="my-games-list" id="myGamesList">
                         <div class="empty-games">No tienes partidas aún</div>
@@ -463,10 +483,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
     <!-- App Scripts -->
-    <script src="js/firebase-config.js?v=3"></script>
-    <script src="js/auth.js?v=3"></script>
-    <script src="js/multiplayer.js?v=3"></script>
-    <script src="js/ui-multiplayer.js?v=3"></script>
-    <script src="js/app-multiplayer.js?v=3"></script>
+    <script src="js/firebase-config.js?v=4"></script>
+    <script src="js/auth.js?v=4"></script>
+    <script src="js/multiplayer.js?v=4"></script>
+    <script src="js/ui-multiplayer.js?v=4"></script>
+    <script src="js/app-multiplayer.js?v=4"></script>
 </body>
 </html>
