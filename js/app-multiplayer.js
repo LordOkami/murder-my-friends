@@ -11,6 +11,8 @@ let userProfile = null;
 let editProfilePhoto = null;
 let pendingAction = null;
 let pendingAuthPhoto = null;
+let webcamStream = null;
+let webcamTarget = null;
 
 // Default weapons
 const DEFAULT_WEAPONS = [
@@ -1057,6 +1059,92 @@ async function rejectSuggestion(id) {
     } catch (e) { showToast(e.message, 'error'); }
 }
 
+/**
+ * Open webcam modal for photo capture
+ */
+function openWebcam(target) {
+    webcamTarget = target;
+    navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 480 } }
+    }).then((stream) => {
+        webcamStream = stream;
+        showModal(`
+            <h3>📹 Tomar Foto</h3>
+            <div class="webcam-container">
+                <video id="webcamVideo" class="webcam-video" autoplay playsinline muted></video>
+            </div>
+            <div class="webcam-actions">
+                <button class="btn btn-ghost" onclick="stopWebcam()">Cancelar</button>
+                <button class="btn btn-primary" onclick="captureWebcam()">📸 Capturar</button>
+            </div>
+        `);
+        const video = document.getElementById('webcamVideo');
+        video.srcObject = stream;
+        video.play();
+    }).catch(() => {
+        showToast('No se pudo acceder a la cámara', 'error');
+    });
+}
+
+/**
+ * Capture frame from webcam video
+ */
+function captureWebcam() {
+    const video = document.getElementById('webcamVideo');
+    if (!video) return;
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const size = Math.min(vw, vh);
+    const sx = (vw - size) / 2;
+    const sy = (vh - size) / 2;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    canvas.getContext('2d').drawImage(video, sx, sy, size, size, 0, 0, size, size);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
+    resizeImage(dataUrl, 200, 200, (resized) => {
+        const targetMap = {
+            auth:        { variable: 'pendingAuthPhoto',  previewId: 'authPhotoPreview' },
+            editProfile: { variable: 'editProfilePhoto',  previewId: 'editProfilePhotoPreview' },
+            gameProfile: { variable: 'pendingPhoto',      previewId: 'profilePhotoPreview' },
+        };
+
+        const cfg = targetMap[webcamTarget];
+        if (!cfg) return;
+
+        // Store in the correct global variable
+        window[cfg.variable] = resized;
+        // Also update the module-level variable directly
+        if (webcamTarget === 'auth') pendingAuthPhoto = resized;
+        else if (webcamTarget === 'editProfile') editProfilePhoto = resized;
+        else if (webcamTarget === 'gameProfile') pendingPhoto = resized;
+
+        const preview = document.getElementById(cfg.previewId);
+        if (preview) {
+            preview.innerHTML = `<img src="${resized}" alt="Tu foto">`;
+            preview.classList.add('has-photo');
+        }
+
+        showToast('Foto capturada', 'success');
+        stopWebcam();
+    });
+}
+
+/**
+ * Stop webcam stream and close modal
+ */
+function stopWebcam() {
+    if (webcamStream) {
+        webcamStream.getTracks().forEach(track => track.stop());
+        webcamStream = null;
+    }
+    hideModal();
+}
+
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', init);
 
@@ -1090,3 +1178,6 @@ window.removeLobbyWeapon = removeLobbyWeapon;
 window.suggestWeaponFromLobby = suggestWeaponFromLobby;
 window.approveSuggestion = approveSuggestion;
 window.rejectSuggestion = rejectSuggestion;
+window.openWebcam = openWebcam;
+window.captureWebcam = captureWebcam;
+window.stopWebcam = stopWebcam;

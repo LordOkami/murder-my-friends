@@ -61,6 +61,7 @@
                                 <input type="file" id="authPhotoInput" accept="image/*" hidden>
                                 📸 Foto de perfil
                             </label>
+                            <button class="btn btn-secondary btn-sm" onclick="openWebcam('auth')">📹 Tomar foto</button>
                         </div>
 
                         <button type="submit" class="btn btn-primary btn-large auth-submit" id="authSubmitBtn">
@@ -149,6 +150,7 @@
                             <input type="file" id="editProfilePhotoInput" accept="image/*" hidden>
                             <span>📸</span> Cambiar Foto
                         </label>
+                        <button class="btn btn-secondary" onclick="openWebcam('editProfile')">📹 Tomar foto</button>
                     </div>
 
                     <div class="setup-section">
@@ -242,6 +244,7 @@
                             <input type="file" id="profilePhotoInput" accept="image/*" hidden>
                             <span>📸</span> Tomar Selfie
                         </label>
+                        <button class="btn btn-secondary" onclick="openWebcam('gameProfile')">📹 Tomar foto</button>
                     </div>
 
                     <div class="setup-section" id="profileNameSection">
