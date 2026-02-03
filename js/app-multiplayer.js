@@ -34,6 +34,25 @@ async function init() {
 
     if (!firebaseReady) return;
 
+    // Handle Google redirect result (fallback when popup is blocked)
+    try {
+        const result = await getAuth().getRedirectResult();
+        if (result && result.user) {
+            await ensureUserCreated(result.user);
+        }
+    } catch (e) { /* handled by onAuthStateChanged */ }
+
+    // Detect ?code= in URL for direct join links
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const urlCode = params.get('code');
+        if (urlCode) {
+            // Clean URL without reloading
+            window.history.replaceState({}, '', window.location.pathname);
+            pendingAction = { type: 'joinGame', code: urlCode.toUpperCase() };
+        }
+    } catch (e) { /* ignore */ }
+
     // Restore pendingAction from sessionStorage (Google redirect on mobile)
     try {
         const stored = sessionStorage.getItem('pendingAction');

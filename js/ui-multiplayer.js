@@ -397,8 +397,9 @@ function launchConfetti() {
 function copyGameCode() {
     const code = activeGame?.gameCode;
     if (code) {
-        navigator.clipboard.writeText(code).then(() => {
-            showToast('Código copiado: ' + code, 'success');
+        const url = window.location.origin + window.location.pathname + '?code=' + code;
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('Enlace copiado', 'success');
         }).catch(() => {
             showToast('No se pudo copiar', 'error');
         });
