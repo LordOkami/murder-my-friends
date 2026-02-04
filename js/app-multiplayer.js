@@ -14,6 +14,10 @@ let pendingAuthPhoto = null;
 let webcamStream = null;
 let webcamTarget = null;
 
+// Kill flow tracking
+let lastKnownTargetId = null;
+let pendingKillShown = false;
+
 // Default weapons
 const DEFAULT_WEAPONS = [
     'Cuchillo de cocina', 'Sartén', 'Almohada', 'Cuerda', 'Veneno',
@@ -419,6 +423,8 @@ function backToHome() {
         activeGame.isHost = false;
         activeGame.gameState = null;
     }
+    lastKnownTargetId = null;
+    pendingKillShown = false;
     refreshHomeScreen();
     showScreen('welcomeScreen');
 }
@@ -891,7 +897,7 @@ function handleWaitingState(gameState) {
  */
 function handlePlayingState(gameState) {
     const currentScreen = document.querySelector('.screen.active');
-    const gameScreens = ['gameScreen', 'missionScreen', 'killScreen'];
+    const gameScreens = ['gameScreen', 'missionScreen'];
 
     if (!currentScreen || !gameScreens.includes(currentScreen.id)) {
         showScreen('gameScreen');
@@ -903,6 +909,24 @@ function handlePlayingState(gameState) {
     const totalPlayers = Object.keys(gameState.players || {}).length;
     const killedCount = (gameState.killedPlayers || []).length;
     updateGameProgress(totalPlayers, killedCount);
+
+    // Detect pending kill for me
+    const myPendingKill = gameState.pendingKills?.[activeGame.playerId];
+    if (myPendingKill && !pendingKillShown) {
+        pendingKillShown = true;
+        handlePendingKill(myPendingKill);
+    } else if (!myPendingKill) {
+        pendingKillShown = false;
+    }
+
+    // Detect new target (after a confirmed kill)
+    if (activeGame.isAlive(activeGame.playerId)) {
+        const currentTargetId = activeGame.getMyCurrentTargetId();
+        if (lastKnownTargetId && currentTargetId !== lastKnownTargetId) {
+            handleNewTarget();
+        }
+        lastKnownTargetId = currentTargetId;
+    }
 }
 
 /**
@@ -950,48 +974,108 @@ function showMyMission() {
 }
 
 /**
- * Show kill select screen
+ * Report my kill — shows confirmation modal for current target
  */
-function showKillSelect() {
+function reportMyKill() {
     if (!activeGame.gameState) return;
 
-    renderKillSelectGrid(activeGame.gameState.players, activeGame.gameState.killedPlayers);
-    showScreen('killScreen');
-}
+    if (!activeGame.isAlive(activeGame.playerId)) {
+        showToast('Ya has sido eliminado', 'error');
+        return;
+    }
 
-/**
- * Confirm kill
- */
-function confirmKill(victimId) {
-    const victim = activeGame.gameState.players[victimId];
+    const mission = activeGame.getMyMission();
+    if (!mission || !mission.target) {
+        showToast('No se encontró tu misión', 'error');
+        return;
+    }
+
+    const target = mission.target;
+    const weapon = mission.weapon;
 
     showModal(`
-        <h3>💀 Confirmar Asesinato</h3>
-        <p>¿Confirmas que <strong>${escapeHtml(victim.name)}</strong> ha sido eliminado?</p>
+        <h3>💀 Reportar Asesinato</h3>
+        <p>¿Has eliminado a <strong>${escapeHtml(target.name)}</strong> con <strong>${escapeHtml(weapon)}</strong>?</p>
         <div class="modal-buttons">
             <button class="btn btn-ghost" onclick="hideModal()">Cancelar</button>
-            <button class="btn btn-danger" onclick="executeKill('${victimId}')">Confirmar</button>
+            <button class="btn btn-danger" onclick="executeKillRequest('${mission.targetId}')">Confirmar</button>
         </div>
     `);
 }
 
 /**
- * Execute kill
+ * Execute kill request (sends pending kill for victim to confirm)
  */
-async function executeKill(victimId) {
+async function executeKillRequest(targetId) {
     hideModal();
 
     try {
-        const result = await activeGame.reportKill(victimId);
-        const victim = activeGame.gameState.players[victimId];
-        showToast(`${victim.name} ha sido eliminado`, 'success');
-
-        if (!result.isGameOver) {
-            showScreen('gameScreen');
-        }
+        await activeGame.requestKill(targetId);
+        const target = activeGame.gameState.players[targetId];
+        showToast(`Esperando confirmación de ${target.name}...`, 'info');
     } catch (error) {
         showToast(error.message, 'error');
     }
+}
+
+/**
+ * Handle pending kill notification for the victim
+ */
+function handlePendingKill(pendingKill) {
+    showModal(`
+        <h3>💀 ¡Te han eliminado!</h3>
+        <p><strong>${escapeHtml(pendingKill.killerName)}</strong> dice que te ha eliminado.</p>
+        <p>¿Aceptas tu muerte?</p>
+        <div class="modal-buttons">
+            <button class="btn btn-ghost" onclick="rejectMyKill()">Rechazar</button>
+            <button class="btn btn-danger" onclick="acceptMyDeath()">Aceptar muerte</button>
+        </div>
+    `);
+}
+
+/**
+ * Accept my death (victim confirms the kill)
+ */
+async function acceptMyDeath() {
+    hideModal();
+
+    try {
+        await activeGame.confirmMyDeath();
+        showToast('Has sido eliminado', 'info');
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+/**
+ * Reject the kill (victim denies it)
+ */
+async function rejectMyKill() {
+    hideModal();
+
+    try {
+        await activeGame.rejectKill();
+        showToast('Asesinato rechazado', 'info');
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+/**
+ * Handle new target notification (after a confirmed kill, target changes)
+ */
+function handleNewTarget() {
+    const mission = activeGame.getMyMission();
+    if (!mission || !mission.target) return;
+
+    showModal(`
+        <h3>🎯 Nueva Misión</h3>
+        <p>Tu nuevo objetivo es <strong>${escapeHtml(mission.target.name)}</strong></p>
+        <p>Arma: <strong>${escapeHtml(mission.weapon)}</strong></p>
+        <div class="modal-buttons">
+            <button class="btn btn-primary" onclick="hideModal()">Entendido</button>
+        </div>
+    `);
 }
 
 /**
@@ -1003,6 +1087,8 @@ async function leaveAndReset() {
     weapons = [];
     pendingPhoto = null;
     pendingGameCode = null;
+    lastKnownTargetId = null;
+    pendingKillShown = false;
 
     if (document.getElementById('weaponsList')) {
         document.getElementById('weaponsList').innerHTML = '';
@@ -1176,9 +1262,10 @@ window.showJoinProfile = showJoinProfile;
 window.joinWithProfile = joinWithProfile;
 window.startMultiplayerGame = startMultiplayerGame;
 window.showMyMission = showMyMission;
-window.showKillSelect = showKillSelect;
-window.confirmKill = confirmKill;
-window.executeKill = executeKill;
+window.reportMyKill = reportMyKill;
+window.executeKillRequest = executeKillRequest;
+window.acceptMyDeath = acceptMyDeath;
+window.rejectMyKill = rejectMyKill;
 window.leaveAndReset = leaveAndReset;
 window.handleGoogleLogin = handleGoogleLogin;
 window.handleEmailLogin = handleEmailLogin;

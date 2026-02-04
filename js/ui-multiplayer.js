@@ -256,31 +256,6 @@ function renderPlayersGridGame(players, killedPlayers, containerId = 'playersGri
 }
 
 /**
- * Render kill select grid
- */
-function renderKillSelectGrid(players, killedPlayers) {
-    const grid = document.getElementById('killSelectGrid');
-    if (!grid) return;
-
-    const playerList = Object.values(players || {});
-    const killed = killedPlayers || [];
-    const alivePlayers = playerList.filter(p => !killed.includes(p.id));
-
-    grid.innerHTML = alivePlayers.map(player => {
-        const photoHtml = player.photo
-            ? `<img src="${player.photo}" alt="${player.name}" class="kill-photo">`
-            : `<div class="kill-avatar">${getInitials(player.name)}</div>`;
-
-        return `
-            <button class="kill-select-btn" onclick="confirmKill('${player.id}')">
-                ${photoHtml}
-                <span class="kill-name">${escapeHtml(player.name)}</span>
-            </button>
-        `;
-    }).join('');
-}
-
-/**
  * Update game progress
  */
 function updateGameProgress(totalPlayers, killedCount) {
@@ -472,7 +447,6 @@ window.updateWeaponsList = updateWeaponsList;
 window.renderWeaponsGrid = renderWeaponsGrid;
 window.renderPlayersGridLobby = renderPlayersGridLobby;
 window.renderPlayersGridGame = renderPlayersGridGame;
-window.renderKillSelectGrid = renderKillSelectGrid;
 window.updateGameProgress = updateGameProgress;
 window.showMissionCard = showMissionCard;
 window.showDeadMessage = showDeadMessage;

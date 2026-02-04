@@ -273,17 +273,15 @@ class MultiplayerGame {
     }
 
     /**
-     * Get current player's mission
+     * Get current target ID (with inheritance through killed players)
      */
-    getMyMission() {
+    getMyCurrentTargetId() {
         if (!this.gameState || this.gameState.status !== 'playing') {
             return null;
         }
 
         const assignment = this.gameState.assignments[this.playerId];
-        if (!assignment) {
-            return null;
-        }
+        if (!assignment) return null;
 
         let targetId = assignment.targetId;
         const killedPlayers = this.gameState.killedPlayers || [];
@@ -299,6 +297,23 @@ class MultiplayerGame {
             }
         }
 
+        return targetId;
+    }
+
+    /**
+     * Get current player's mission
+     */
+    getMyMission() {
+        if (!this.gameState || this.gameState.status !== 'playing') {
+            return null;
+        }
+
+        const assignment = this.gameState.assignments[this.playerId];
+        if (!assignment) {
+            return null;
+        }
+
+        const targetId = this.getMyCurrentTargetId();
         const target = this.gameState.players[targetId];
         const weaponIndex = assignment.weaponIndex;
         const weapon = this.gameState.weapons[weaponIndex];
@@ -306,35 +321,57 @@ class MultiplayerGame {
 
         return {
             target,
+            targetId,
             weapon: typeof weapon === 'object' ? weapon.name : weapon,
             isInherited
         };
     }
 
     /**
-     * Report a kill
+     * Request a kill (creates a pending kill for victim to confirm)
      */
-    async reportKill(victimId) {
-        const killedPlayers = this.gameState.killedPlayers || [];
-
-        if (killedPlayers.includes(victimId)) {
-            throw new Error('Este jugador ya está eliminado');
+    async requestKill(victimId) {
+        const myTargetId = this.getMyCurrentTargetId();
+        if (victimId !== myTargetId) {
+            throw new Error('No es tu objetivo actual');
         }
 
-        const newKilledPlayers = [...killedPlayers, victimId];
-        const killOrder = this.gameState.killOrder || [];
+        const pending = this.gameState.pendingKills?.[victimId];
+        if (pending) {
+            throw new Error('Ya hay un asesinato pendiente para este jugador');
+        }
 
-        killOrder.push({
-            victimId,
+        const player = this.gameState.players[this.playerId];
+        await this.gameRef.child('pendingKills/' + victimId).set({
+            killerId: this.playerId,
+            killerName: player.name,
             timestamp: Date.now()
         });
+    }
+
+    /**
+     * Confirm my own death (victim accepts the pending kill)
+     */
+    async confirmMyDeath() {
+        const pendingKill = this.gameState.pendingKills?.[this.playerId];
+        if (!pendingKill) {
+            throw new Error('No hay asesinato pendiente');
+        }
+
+        const killedPlayers = [...(this.gameState.killedPlayers || []), this.playerId];
+        const killOrder = [...(this.gameState.killOrder || []), {
+            victimId: this.playerId,
+            killerId: pendingKill.killerId,
+            timestamp: Date.now()
+        }];
 
         const players = Object.keys(this.gameState.players || {});
-        const alivePlayers = players.filter(id => !newKilledPlayers.includes(id));
+        const alivePlayers = players.filter(id => !killedPlayers.includes(id));
 
         const updates = {
-            killedPlayers: newKilledPlayers,
-            killOrder: killOrder
+            killedPlayers,
+            killOrder,
+            ['pendingKills/' + this.playerId]: null
         };
 
         if (alivePlayers.length === 1) {
@@ -344,11 +381,20 @@ class MultiplayerGame {
         }
 
         await this.gameRef.update(updates);
+    }
 
-        return {
-            isGameOver: alivePlayers.length === 1,
-            winnerId: alivePlayers.length === 1 ? alivePlayers[0] : null
-        };
+    /**
+     * Reject the pending kill on me
+     */
+    async rejectKill() {
+        await this.gameRef.child('pendingKills/' + this.playerId).remove();
+    }
+
+    /**
+     * Get pending kill for current player (if any)
+     */
+    getPendingKillForMe() {
+        return this.gameState?.pendingKills?.[this.playerId] || null;
     }
 
     /**
