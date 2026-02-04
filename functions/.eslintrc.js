@@ -1,0 +1,13 @@
+module.exports = {
+  root: true,
+  env: {
+    es2020: true,
+    node: true,
+  },
+  parserOptions: {
+    ecmaVersion: 2020,
+  },
+  rules: {
+    "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+  },
+};

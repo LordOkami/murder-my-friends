@@ -82,6 +82,9 @@ async function init() {
             // Load profile
             userProfile = await getUserProfile();
 
+            // Initialize FCM (registers service worker, sets up foreground handler)
+            if (typeof initFCM === 'function') initFCM();
+
             // Update welcome screen for logged-in state
             updateWelcomeForLoggedIn();
 
@@ -322,6 +325,9 @@ async function enterGame(gameCode) {
         const gameData = await activeGame.connectToGame(gameCode);
         activeGame.onGameUpdate = handleGameUpdate;
 
+        // Re-register push token when reconnecting to a game
+        if (typeof requestNotificationPermission === 'function') requestNotificationPermission();
+
         switch (gameData.status) {
             case 'waiting':
                 showScreen('lobbyScreen');
@@ -528,6 +534,9 @@ async function handleGoogleLogin() {
  * Handle logout
  */
 async function handleLogout() {
+    // Remove FCM token before logging out
+    if (typeof deleteFCMToken === 'function') await deleteFCMToken();
+
     if (activeGame && activeGame.gameState) {
         await activeGame.leaveGame();
         activeGame.gameState = null;
@@ -818,6 +827,9 @@ async function joinWithProfile() {
 
         showScreen('lobbyScreen');
         showToast('¡Te has unido!', 'success');
+
+        // Request push notification permission after joining
+        if (typeof requestNotificationPermission === 'function') requestNotificationPermission();
 
     } catch (error) {
         showToast(error.message, 'error');
